@@ -16,7 +16,8 @@ SAVETAX_DATA_DIR := $(abspath $(or $(strip $(SAVETAX_DATA_DIR)),./data))
 export
 
 GO := cd collector && go run ./cmd/savetax
-PY := cd pipeline && uv run
+# Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
+PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
 .PHONY: build check dataset silver candidates lookup facts watch scrape agent preview submit report test
 
@@ -34,4 +35,4 @@ agent:       ; cd agent && uv run python -m agent.run
 preview:     ; $(GO) submit --claim ../data/gold/claims/$(ID).json
 submit:      ; $(GO) submit --claim ../data/gold/claims/$(ID).json --confirm
 report:      ; $(PY) python -m savetax_pipeline.report
-test:        ; cd collector && go test ./... && if [ -f ../pipeline/pyproject.toml ]; then cd ../pipeline && uv run pytest; fi
+test:        ; cd collector && go test ./... && if [ -f ../pipeline/pyproject.toml ]; then cd ../pipeline && env -u SAVETAX_TOKEN uv run pytest; fi

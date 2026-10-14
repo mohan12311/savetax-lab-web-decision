@@ -61,6 +61,7 @@ docs/        ARCHITECTURE.md API.md RULES.md
 - 검색 `categoryCode`(5자리) ≠ 상세 `categoryCode`(10자리). `detailName`은 응답의 `category` 값과 정확히 일치해야 한다.
 - 404 = "없음"이지 "가격 정상"이 아니다.
 - 단가에 1원 같은 원천 오입력이 있다. 이상치 필터를 먼저 건다.
+- DuckDB `sum()`은 HUGEINT를 내고, Parquet으로 쓰면 **DOUBLE**이 된다. 금액 합계는 `CAST(sum(x) AS BIGINT)`로 쓴다(silver 검사는 쓴 파일에 float 컬럼이 있으면 게시를 막는다).
 
 ## 호출 한도 (설계의 핵심 제약)
 - 데이터 API(api.savetax.now)·MCP 공유: **3,600회/시간**, 검색은 별도 **120회/분**. `/v1/me`로 사용량 확인.

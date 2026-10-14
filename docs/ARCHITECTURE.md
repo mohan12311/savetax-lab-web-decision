@@ -76,7 +76,7 @@ collector/
 |---|---|---|---|
 | `check` | — | 콘솔 출력 | `/v1/events/current` 상수, 대회 `/me` 한도·remaining, 데이터 `/v1/me` 사용량 |
 | `dataset` | — | `data/bronze/dataset/<ver>/` | curl과 동일한 GET, `SHA256SUMS` 검증, 이어받기 없음 |
-| `crawl --kind listing\|item\|deliveries` | state 큐(gold 후보에서 적재) | `bronze/api/<kind>/dt=YYYY-MM-DD/part-*.jsonl.gz` | deliveries는 `final=1`, `limit≤1000`, offset 페이지 |
+| `crawl --kind listing\|item\|deliveries` | state 큐(gold 후보에서 적재) | `bronze/data/<kind>/dt=YYYY-MM-DD/part-*.jsonl.gz` (`run.Writer("data", kind)`) | deliveries는 `final=1`, `limit≤1000`, offset 페이지. 봉투 `body`는 응답 전체(`{data:{id, contractNo, finalSummary, rows, page}}`) — silver `deliveries_final`이 이 경로를 읽는다 |
 | `lookup` | 후보 item_id 목록 | `bronze/contest/lookup/…` | 100개 배치, 제출 횟수 미사용 |
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
 | `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
@@ -119,21 +119,33 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 - DuckDB가 `data/bronze/**/*.jsonl.gz`, `data/silver/**/*.parquet`을 glob으로 직접 읽는다. SQL 모델은 `sql/`에 두고 Python은 실행·검증·저장을 맡는다.
 - 메모리 상한: `SET memory_limit='8GB'; SET threads=…;` 큰 조인은 DuckDB가 디스크로 스필한다.
 
-### 4.2 silver 테이블
+### 4.2 silver 테이블 (M2, `make silver`)
+
+`python -m savetax_pipeline.silver`가 `sql/staging_<table>.sql`을 차례로 실행해 `data/silver/<table>.parquet`과 `manifest.json`을 만든다. 매번 전체를 다시 만든다(약 3초). 차단 검사가 하나라도 실패하면 기존 silver를 그대로 두고 종료 코드 1.
 
 | 테이블 | 키 | 원천 | 핵심 처리 |
 |---|---|---|---|
-| `listings` | listing_id | 데이터셋 parquet + crawl 상세 | 금액 문자열 → int64, 단위 정규화 컬럼 추가(원값 보존), `contractEndYmd`로 유효 계약 플래그 |
-| `deliveries_final` | (request_no, line_no) | deliveries API `final=1` | 최종 차수만, `dlv_key` 중복 제거 |
-| `items` | item_id | 데이터셋 + items API | listing → item 매핑, 물품 단위 묶음 |
-| `contest_facts` | fact_id | 대회 items/{item_id} | `unit`, `tax_basis`, `basis_id`, `unit_price_krw`, `quantity`, `comparable_amount_krw`, `scorable` 원문 그대로 |
-| `retail_offers` | (url, observed_at) | 스크래퍼 | 가격·VAT·배송 조건, 원문 sha256 |
-| `claim_state` | item_id | lookup·watch | 최신 상태 |
+| `listings` | listing_id | 데이터셋 parquet | 35컬럼 원값 보존(`price`는 DECIMAL(18,3) 그대로 — 소수 단가 68건). 추가: `contract_no`(등재번호 앞 11/13자), `unit_norm`(EA→개, ㎡·m²→m2, KG→kg 등 표기만 통일, 포장 단위는 그대로), `price_flag`(`lt_10`·`ge_1e9`, 거르지 않고 표시만), `contract_end_clean`(2100년 이후 입력 오류 → null), `contract_active`(as_of 기준, 종료일 불명은 null), `dataset_release_id` |
+| `dlv_keys` | dlv_key | listings | 납품 키 1행. 납품 합계는 이 표에서 더한다. 키 → 물품·계약은 항상 1개(검사) |
+| `items` | item_id | listings + dlv_keys | 물품 속성(물품 안에서 하나로 같음 — 검사), 등재·유효 등재·계약 수, `units`, 납품 합계(키 기준, 키 없으면 null). 수량은 모든 키의 단위가 하나일 때만 합산 |
+| `deliveries_final` | (request_no, line_no) | `bronze/data/deliveries` 봉투 | `finalRequest='Y'` 라인만, 공유 등재·재수집 중복 제거(최신 `fetched_at`), 금액·수량 문자열 → DECIMAL(20,4), `listing_ids`·`item_id`·`is_zero`. 사업자번호는 읽지 않는다. crawl 전이라 지금은 빈 표 |
+| `contest_facts` | fact_id | 대회 items/{item_id} | (M4) `unit`, `tax_basis`, `basis_id`, `unit_price_krw`, `quantity`, `comparable_amount_krw`, `scorable` 원문 그대로 |
+| `retail_offers` | (url, observed_at) | 스크래퍼 | (M5) 가격·VAT·배송 조건, 원문 sha256 |
+| `claim_state` | item_id | lookup·watch | (M4) 최신 상태 |
 
-검증 테스트(필수):
-- 납품 합계: `dlv_key` 중복 제거 전후 차이가 약 24% 수준인지 확인.
-- 금액 컬럼에 float가 섞이지 않았는지, `null`이 0으로 바뀌지 않았는지.
-- 1원 같은 극단 단가 비율 리포트.
+- as_of = 데이터셋 manifest `source.stamp.listing_observed_max`의 KST 날짜(20261010-r5는 2026-10-04). 오늘 날짜가 아니라 등재 관측일이라 재실행해도 결과가 같다.
+- `manifest.json`: 입력(데이터셋 sha256, deliveries 파일별 sha256), 코드(`git describe`, SQL 파일 sha256), 표별 행 수·sha256, 검사 결과, 리포트.
+
+차단 검사(`checks.py`, 데이터셋 manifest `quality` 수치와 대조 — 그 릴리스 manifest에 없는 수치는 검사하지 않는다):
+- 납품 합계: 키 기준 합 = `kept_amount`(17,566,373,107,109원), 등재별 단순 합 = `naive_amount`(21,760,228,811,978원, 23.87% 과대). 키 수·공유 등재 수·최대 공유·전량 취소 키·수량 null 수도 대조.
+- 키 안에서 `dlv_*` 값이 갈리지 않음, 키 → 물품·계약 1개, `dlv_shared_listings` = 실제 공유 등재 수.
+- null 보존: 원본과 silver.listings의 컬럼별 null 수가 같다(null → 0 변환 감시).
+- float 금지: **쓴 Parquet 파일 자체**의 스키마에 FLOAT/DOUBLE이 없다. DuckDB `sum()`은 HUGEINT를 내고 Parquet은 이를 DOUBLE로 쓰므로, 합계는 SQL에서 BIGINT로 캐스트한다.
+- 단가 이상치(`price_lt_10` 44, `price_ge_1e9` 287)·계약 종료일 오류(52)·할인(591) 건수.
+
+리포트(차단 안 함): 이상 단가 비율·단위별 분포, 단순 합산 과대율, 계약 유효 분포, 단위 표기 수, deliveries 봉투·라인 수, 최종 표시 없는 라인 수, `finalSummary.amountSum` ≠ 라인 합인 등재 수(일부 페이지만 받았거나 원장 변경).
+
+참고(10/14 실측): deliveries `finalSummary.lineCount`는 수량·금액이 모두 0인 라인을 포함하지만 데이터셋 `dlv_lines`는 뺀다(같은 등재에서 5 vs 4). 금액 합은 같다.
 
 ### 4.3 gold 마트와 후보 점수
 1. `mart_item_dispersion`: 같은 item_id·같은 단위의 등재 간 단가 min/median/max → 같은 물건을 비싸게 산 등재 탐지.

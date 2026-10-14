@@ -36,6 +36,7 @@ var commands = []command{
 	{"facts", "(M4) items/{item_id} facts 수집", notYet("M4")},
 	{"watch", "(M6) SSE 피드 감시", notYet("M6")},
 	{"scrape", "다나와 검색·상품 페이지 수집 → data/bronze/retail/danawa/ (원문 HTML + 추출)", runScrape},
+	{"probe", "시중 판매 페이지가 정적 HTML로 읽히는지(본문에 상품명·가격) 판정 → data/bronze/retail/probe/", runProbe},
 	{"submit", "(M6) preview → submit --confirm", notYet("M6")},
 }
 

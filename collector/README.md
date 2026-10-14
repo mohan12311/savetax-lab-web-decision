@@ -10,6 +10,7 @@
 | `make dataset` | M1 ✅ | `latest.json` → `SHA256SUMS`와 교차 확인 → 공식 ZIP URL(`/latest/savetax-products.zip`, 토큰을 보내는 유일한 데이터셋 주소)에서 받기(sha256·크기 검증, 실패 시 처음부터 최대 3회) → 경로 검사 후 압축 해제 → 내부 파일 재검증 → `COMPLETE.json`·`current.json` | 필요 |
 | `make scrape ARGS='--query <모델명>'` | M5 ✅ | 다나와 검색 → 상위 `--top`(기본 3)개 상품 페이지 수집. robots.txt 준수(검색 Crawl-delay 10초), state 큐로 이어받기, 끝난 작업은 `--refresh`로만 다시, 403이면 중단. `--from <파일>`(한 줄 하나), `--pcode <코드>`도 받는다 | 보내지 않음(프로세스에서도 제거) |
 | `make lookup [ARGS='--limit N']` | M3 ✅ | `data/gold/lookup_ids.txt`를 대회 `items/lookup`으로 100개씩 조회 → `bronze/contest/lookup/`. 스냅샷을 만들지 않고 제출 횟수도 쓰지 않는다. 큐 없이 매번 목록 전체. `--from <파일>`, `--id <번호>`도 받는다 | 필요 |
+| `make probe ARGS='--url <주소> --need <모델명>'` | M5 | 시중 페이지를 정적 HTML로 받아 본문 글자에 가격·문구가 있는지 판정(lint 가독성 미리보기). EUC-KR 해독, robots 준수, 403 도메인은 건너뜀. `--from <파일>`(`주소 \| 문구 \| 문구`) | 보내지 않음(프로세스에서도 제거) |
 | `crawl` `facts` `watch` `submit` | M4~M6 | — | — |
 
 `go run ./cmd/savetax dataset [--verify | --force]`

@@ -63,3 +63,20 @@ def test_lookup_ids_skip_sticky_states_and_join_state(make_bronze, tmp_path):
     # 티어는 없지만 납품 1억 이상이라 lookup 대상. 이미 선점된 것은 다시 묻지 않는다
     assert sorted(ids) == ["70000002", "70000003"]
     assert m["summary"]["lookup_ids"] == 2
+
+
+def test_tier_c_compares_same_pack_size_only(make_bronze, tmp_path):
+    def salt(i, kg, price, **kw):
+        return listing(listing_id=f"8{i:08d}_1000000001", item_id=f"8{i:07d}", unit="포",
+                       name=f"고상제설제, 테스트, ECO-{i}, {kg}, 환경표지", price=Decimal(price), **kw)
+    rows = [salt(i, "20kg", "10000") for i in range(30)]
+    rows += [salt(100 + i, "1,000kg", "400000") for i in range(10)]
+    # 1000kg 포대를 2억어치 샀다. 20kg 포대와 섞으면 중앙값의 42배지만 같은 1000kg끼리는 1.05배
+    rows.append(salt(200, "1,000kg", "420000", **dlv(1, 200_000_000, qty=476)))
+    # 500g 표기는 0.5kg로 맞춘다
+    rows.append(salt(300, "500g", "3000", **dlv(2, 1_000_000, qty=333)))
+    _, got, _ = build(make_bronze, tmp_path, rows)
+    big = got["80000200"]
+    assert (big["pack_key"], big["tier"], big["cat_n"]) == ("1000.0000kg", None, 11)
+    assert big["x_median"] < 2
+    assert got["80000300"]["pack_key"] == "0.5000kg"

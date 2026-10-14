@@ -19,7 +19,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts watch scrape agent preview submit report test
+.PHONY: build check dataset silver candidates lookup facts watch scrape probe agent preview submit report test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -32,6 +32,8 @@ facts:       ; $(GO) facts --top 500
 watch:       ; $(GO) watch
 # scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'
 scrape:      ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax scrape --source $(or $(SOURCE),danawa) $(ARGS)
+# probe도 시중 사이트만 부른다(토큰 제거). 예: make probe ARGS='--url https://… --need 모델명' 또는 ARGS='--from 파일'
+probe:       ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax probe $(ARGS)
 agent:       ; cd agent && uv run python -m agent.run
 preview:     ; $(GO) submit --claim ../data/gold/claims/$(ID).json
 submit:      ; $(GO) submit --claim ../data/gold/claims/$(ID).json --confirm

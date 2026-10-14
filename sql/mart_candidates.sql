@@ -5,16 +5,34 @@
 -- 기준가 m은 조달 안에서 같은 것이 더 싸게 등재된 가격이다. 시중가가 아니다 — 근거는 따로 찾는다.
 --   item  : 같은 물품번호·같은 단위의 최저 등재가(다른 업체·계약). 같은 물건이라는 근거가 가장 강하다
 --   model : 같은 정규화 모델명·세부품명·단위인 다른 물품번호의 최저 등재가. 모델명이 겹친 다른 물건일 수 있다
---   cat   : 세부품명·단위 중앙값(30건 이상). 규격 차이가 대부분이라 가장 약하다 — 순위만 매기고 금액 근거로 쓰지 않는다
+--   cat   : 세부품명·단위·포장 규격 중앙값(규격 없음 30건, 규격 있음 10건 이상). 규격 차이가 대부분이라 가장 약하다
+-- 포장 규격(pack_key)은 상품명의 첫 중량·용량 표기(kg·g·L·ml)를 kg·l로 맞춘 값이다(예: 1000kg 포대 ≠ 20kg 포대).
+-- 단가를 용량으로 나누지 않고 같은 표기끼리만 비교한다 — 배낭 60L처럼 용량이 포장량이 아니라 사양인 경우가 있다.
 -- 키(계약×물품)마다 구매 단가 p는 키에 묶인 등재가의 중앙값이다(주문 평균 단가 ÷ 등재가의 중앙값은 1.0).
 -- 잠재액은 대회 산식 C − M × Q를 키마다 a × (p − m) ÷ p로 근사하고, gap 기준(P ≥ 1.2M 또는 P − M ≥ 100만)을
 -- 넘는 키만 더한다(대회는 기준 미달 라인을 빼고 낼 수 있다).
-WITH sane AS (
+WITH parsed AS (
+  SELECT
+    *,
+    upper(regexp_replace(coalesce(model, ''), '[^0-9A-Za-z]', '', 'g')) AS mn,
+    -- 천 단위 쉼표(1,000kg)를 지우고 첫 중량·용량 표기를 읽는다. RE2라 전방탐색 대신 뒤 글자를 소비한다
+    regexp_extract(regexp_replace(name, '([0-9]),([0-9]{3})', '\1\2', 'g'),
+                   '(?i)([0-9]+(?:\.[0-9]+)?)\s*(kg|㎏|g|ℓ|l|ml|㎖|리터)([^a-z]|$)', ['qty', 'u']) AS pm
+  FROM listings
+),
+sane AS (
   -- 기준가로 쓸 등재: 이상 단가(10원 미만·10억 이상)와 단위 없는 등재 제외
   SELECT
     listing_id, item_id, dlv_key, unit_norm, price, contract_active, detail_category_code,
-    CASE WHEN length(mn) >= 5 AND regexp_matches(mn, '[0-9]') AND regexp_matches(mn, '[A-Z]') THEN mn END AS model_norm
-  FROM (SELECT *, upper(regexp_replace(coalesce(model, ''), '[^0-9A-Za-z]', '', 'g')) AS mn FROM listings)
+    CASE WHEN length(mn) >= 5 AND regexp_matches(mn, '[0-9]') AND regexp_matches(mn, '[A-Z]') THEN mn END AS model_norm,
+    CASE
+      WHEN pm.qty = '' THEN NULL
+      WHEN lower(pm.u) IN ('kg', '㎏') THEN CAST(CAST(nullif(pm.qty, '') AS DECIMAL(18, 4)) AS VARCHAR) || 'kg'
+      WHEN lower(pm.u) = 'g' THEN CAST(CAST(CAST(nullif(pm.qty, '') AS DECIMAL(18, 4)) / 1000 AS DECIMAL(18, 4)) AS VARCHAR) || 'kg'
+      WHEN lower(pm.u) IN ('l', 'ℓ', '리터') THEN CAST(CAST(nullif(pm.qty, '') AS DECIMAL(18, 4)) AS VARCHAR) || 'l'
+      ELSE CAST(CAST(CAST(nullif(pm.qty, '') AS DECIMAL(18, 4)) / 1000 AS DECIMAL(18, 4)) AS VARCHAR) || 'l'
+    END AS pack_key
+  FROM parsed
   WHERE price_flag IS NULL AND unit_norm IS NOT NULL
 ),
 key_price AS (
@@ -23,7 +41,8 @@ key_price AS (
     CAST(median(s.price) AS DECIMAL(18, 3)) AS p,
     min(s.unit_norm) AS unit_norm,
     min(s.detail_category_code) AS dcc,
-    min(s.model_norm) AS model_norm
+    min(s.model_norm) AS model_norm,
+    min(s.pack_key) AS pack_key
   FROM dlv_keys k
   JOIN sane s ON s.dlv_key = k.dlv_key
   WHERE k.dlv_lines > 0 AND k.dlv_amount > 0
@@ -41,15 +60,15 @@ model_ref AS (
   FROM key_price kp
   JOIN sane s
     ON s.model_norm = kp.model_norm AND s.detail_category_code = kp.dcc
-   AND s.unit_norm = kp.unit_norm AND s.item_id <> kp.item_id
+   AND s.unit_norm = kp.unit_norm AND s.pack_key IS NOT DISTINCT FROM kp.pack_key AND s.item_id <> kp.item_id
   WHERE kp.model_norm IS NOT NULL
   GROUP BY kp.dlv_key
 ),
 cat_ref AS (
-  SELECT detail_category_code, unit_norm, median(price) AS med, count(*) AS n
+  SELECT detail_category_code, unit_norm, pack_key, median(price) AS med, count(*) AS n
   FROM sane
-  GROUP BY detail_category_code, unit_norm
-  HAVING count(*) >= 30
+  GROUP BY detail_category_code, unit_norm, pack_key
+  HAVING count(*) >= CASE WHEN pack_key IS NULL THEN 30 ELSE 10 END
 ),
 keyed AS (
   SELECT
@@ -64,6 +83,7 @@ keyed AS (
   LEFT JOIN item_ref ir ON ir.item_id = kp.item_id AND ir.unit_norm = kp.unit_norm
   LEFT JOIN model_ref mr ON mr.dlv_key = kp.dlv_key
   LEFT JOIN cat_ref cr ON cr.detail_category_code = kp.dcc AND cr.unit_norm = kp.unit_norm
+                     AND cr.pack_key IS NOT DISTINCT FROM kp.pack_key
 ),
 by_item AS (
   -- 단위·기준가는 납품 금액이 가장 큰 키의 것을 대표로 쓴다
@@ -75,7 +95,7 @@ by_item AS (
     sum(u_item_k) AS u_item,
     arg_max(m_model, a) AS m_model, arg_max(m_item_id, a) AS m_model_item_id, arg_max(n_model_items, a) AS n_model_items,
     sum(u_model_k) AS u_model,
-    arg_max(cat_median, a) AS cat_median, arg_max(cat_n, a) AS cat_n
+    arg_max(cat_median, a) AS cat_median, arg_max(cat_n, a) AS cat_n, arg_max(pack_key, a) AS pack_key
   FROM keyed
   GROUP BY item_id
 ),
@@ -108,6 +128,7 @@ SELECT
   cs.checked_at AS claim_checked_at,
   i.name, i.detail_category, i.detail_category_code, i.manufacturer, i.model, i.source,
   t.unit_norm,
+  t.pack_key,
   t.c_est,
   i.n_dlv_keys, i.dlv_last_date, i.n_listings, i.n_listings_active,
   CAST(t.p_est AS DECIMAL(18, 2)) AS p_est,

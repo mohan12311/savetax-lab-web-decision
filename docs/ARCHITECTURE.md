@@ -81,6 +81,7 @@ collector/
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
 | `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
 | `scrape --source danawa` | `--query`·`--from 파일`·`--pcode` (state 큐 `scrape_danawa`) | `bronze/retail/danawa/{search,product}/dt=…/part-*.jsonl.gz` + `retail/danawa/html/dt=…/<sha256>.html.gz` | 도메인별 리미터, robots.txt 준수, 403이면 중단 |
+| `probe --url <주소> [--need 문구] \| --from <파일>` | 시중 페이지 주소 | `bronze/retail/probe/{page,html}/…` | 정적 HTML의 본문 글자에 가격(N원)·문구가 있는지 판정(`static_ok`·`price_not_in_text`·`empty_shell`·`needle_missing`). EUC-KR 해독, robots 준수, 403이면 그 도메인 건너뜀, 토큰 없음 |
 | `submit` | 승인된 claim JSON | `bronze/contest/receipts/…` | 기본 preview만. `--confirm`일 때만 POST |
 
 ### 3.4 bronze 레코드 봉투(envelope)
@@ -159,10 +160,11 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 |---|---|---|---|
 | A | 같은 물품번호·단위의 최저 등재가 | 잠재액 ≥ 1천만 | 745개. 같은 물건이라는 근거는 가장 강하지만, 상위는 레미콘(지역별 가격)·금속제패널처럼 시중 판매 페이지가 없는 품목이 많다 |
 | B | 같은 정규화 모델명(영문·숫자 5자 이상)·세부품명·단위인 다른 물품번호의 최저가 | 잠재액 ≥ 1천만 | 1,687개. 상위는 소프트웨어 라이선스 — 채널 수·에디션 차이일 수 있어 사람이 봐야 한다 |
-| C | 세부품명·단위 중앙값(30건 이상) | 중앙값의 3배 이상, 납품 ≥ 1억 | 1,919개. 포장·규격 차이(예: 제설제 1000kg 대 20kg)가 많이 섞여 가장 약하다 |
+| C | 세부품명·단위·포장 규격 중앙값(규격 없음 30건, 있음 10건 이상) | 중앙값의 3배 이상, 납품 ≥ 1억 | 1,715개. 포장 규격(상품명의 첫 kg·g·L·ml 표기)이 같은 것끼리만 비교해 제설제 1000kg 대 20kg 같은 잡음을 뺐다. 그래도 규격·사양 차이가 많아 가장 약하다 |
 
 - 정렬: 티어 있는 것 먼저, 추정 잠재액순. `make candidates`는 티어별 상위 10을 따로 보여 준다(티어끼리 같은 눈금이 아니다).
 - `lookup_ids.txt`: 티어가 있거나 납품 1억 원 이상, 이미 `claimed`·`reform_found`·`not_found`로 확인된 것 제외. 흐름은 `make candidates → make lookup → make silver → make candidates`.
+- 내부 기준가만으로는 거짓 양성이 많다(10/14 확인: Windows Server 2025 2코어 티어 B는 조달 154,000원 < 시중 199,000원, EOS R1 티어 C는 조달 830만 원 대 시중 808만 원으로 1.03배). 그래서 시중가(다나와 등 정적 페이지)로 gap 기준을 다시 재는 단계가 필수다.
 - 다음 단계: 시중가 근거 가능성(정적 판매 페이지가 있는 품목인가)을 점수에 넣고, 대회 fact로 C·Q·P를 확정해 다시 계산한다(M4).
 
 ## 5. AI 에이전트 계층

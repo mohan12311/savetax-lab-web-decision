@@ -13,14 +13,9 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 import re
-import shutil
-import subprocess
 import sys
-import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -29,19 +24,16 @@ from typing import Any
 import duckdb
 
 from savetax_pipeline import checks
+from savetax_pipeline.common import (
+    SQL_DIR, bronze_files, data_dir, envelope_view, git_head, lit, publish, read_sql, sha256_file,
+)
 
-REPO = Path(__file__).resolve().parents[3]
-SQL_DIR = REPO / "sql"
 KST = timezone(timedelta(hours=9))
-TABLES = ("listings", "dlv_keys", "items", "deliveries_final")  # 만드는 순서(뒤 표가 앞 표를 읽는다)
+TABLES = ("listings", "dlv_keys", "items", "deliveries_final", "claim_state")  # 만드는 순서(뒤 표가 앞 표를 읽는다)
 RELEASE_RE = re.compile(r"^[0-9A-Za-z._-]{1,64}$")
+SilverCheckError = checks.CheckError
 
-
-class SilverCheckError(RuntimeError):
-    def __init__(self, failed: list[checks.Check]):
-        self.failed = failed
-        super().__init__("silver 차단 검사 실패: " + ", ".join(
-            f"{c.name}(actual={c.actual!r}, expected={c.expected!r})" for c in failed))
+__all__ = ["build_silver", "data_dir", "SilverCheckError", "main"]
 
 
 @dataclass(frozen=True)
@@ -51,10 +43,6 @@ class Dataset:
     parquet_sha256: str
     manifest: dict[str, Any]  # 데이터셋 _meta/manifest.json
     as_of: date  # 등재 관측일(KST) — 계약 유효 판단 기준일
-
-
-def data_dir() -> Path:
-    return Path(os.environ.get("SAVETAX_DATA_DIR") or REPO / "data")
 
 
 def load_dataset(bronze: Path) -> Dataset:
@@ -79,35 +67,12 @@ def load_dataset(bronze: Path) -> Dataset:
     )
 
 
-def delivery_files(bronze: Path) -> list[Path]:
-    # Go bronze writer는 쓰는 중에 .jsonl.gz 이름을 쓰지 않으므로 보이는 파일은 모두 닫힌 파일이다.
-    return sorted((bronze / "data" / "deliveries").glob("**/*.jsonl.gz"))
-
-
-def _lit(s: str) -> str:
-    return "'" + s.replace("'", "''") + "'"
-
-
-def read_sql(name: str) -> str:
-    return (SQL_DIR / f"{name}.sql").read_text()
-
-
-def register_sources(con: duckdb.DuckDBPyConnection, ds: Dataset, deliveries: list[Path]) -> None:
-    con.execute(f"SET VARIABLE as_of = DATE {_lit(ds.as_of.isoformat())}")
-    con.execute(f"SET VARIABLE release_id = {_lit(ds.release_id)}")
-    con.execute(f"CREATE VIEW src_listings AS SELECT * FROM read_parquet({_lit(str(ds.parquet))})")
-    if deliveries:
-        files = "[" + ", ".join(_lit(str(p)) for p in deliveries) + "]"
-        con.execute(f"""
-            CREATE VIEW src_delivery_envelopes AS
-            SELECT * FROM read_json({files}, format = 'newline_delimited', compression = 'gzip',
-                columns = {{fetched_at: 'TIMESTAMPTZ', endpoint: 'VARCHAR', status: 'INTEGER', body: 'JSON'}})""")
-    else:
-        con.execute("""
-            CREATE VIEW src_delivery_envelopes AS
-            SELECT NULL::TIMESTAMPTZ AS fetched_at, NULL::VARCHAR AS endpoint,
-                   NULL::INTEGER AS status, NULL::JSON AS body
-            WHERE false""")
+def register_sources(con: duckdb.DuckDBPyConnection, ds: Dataset, deliveries: list[Path], lookups: list[Path]) -> None:
+    con.execute(f"SET VARIABLE as_of = DATE {lit(ds.as_of.isoformat())}")
+    con.execute(f"SET VARIABLE release_id = {lit(ds.release_id)}")
+    con.execute(f"CREATE VIEW src_listings AS SELECT * FROM read_parquet({lit(str(ds.parquet))})")
+    envelope_view(con, "src_delivery_envelopes", deliveries)
+    envelope_view(con, "src_lookup_envelopes", lookups)
 
 
 def build_tables(con: duckdb.DuckDBPyConnection) -> None:
@@ -115,85 +80,45 @@ def build_tables(con: duckdb.DuckDBPyConnection) -> None:
         con.execute(f"CREATE TABLE {t} AS {read_sql('staging_' + t)}")
 
 
-def sha256_file(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def git_head() -> str | None:
-    try:
-        out = subprocess.run(["git", "-C", str(REPO), "describe", "--always", "--dirty", "--abbrev=12"],
-                             capture_output=True, text=True, check=True, timeout=10)
-        return out.stdout.strip() or None
-    except (OSError, subprocess.SubprocessError):
-        return None
-
-
-def _write_json_atomic(path: Path, obj: Any) -> None:
-    tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex[:8]}.tmp")
-    tmp.write_text(json.dumps(obj, ensure_ascii=False, indent=2, default=str) + "\n")
-    os.replace(tmp, path)
-
-
 def build_silver(bronze: Path, silver: Path) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
     ds = load_dataset(bronze)
-    deliveries = delivery_files(bronze)
+    deliveries = bronze_files(bronze, "data", "deliveries")
+    lookups = bronze_files(bronze, "contest", "lookup")
 
     con = duckdb.connect()
-    register_sources(con, ds, deliveries)
+    register_sources(con, ds, deliveries, lookups)
     build_tables(con)
 
     results = checks.blocking_checks(con, ds.manifest)
-    failed = [c for c in results if not c.ok]
-    if failed:
-        raise SilverCheckError(failed)
+    if failed := [c for c in results if not c.ok]:
+        raise checks.CheckError(failed, "silver")
     rep = checks.report(con)
 
-    # 임시 폴더에 다 쓰고 파일 자체를 검사한 뒤 옮긴다.
-    # manifest를 먼저 지우고 마지막에 쓰므로, manifest가 있으면 파일들은 그 manifest의 것이다.
-    silver.mkdir(parents=True, exist_ok=True)
-    tmp = silver / f".tmp-{uuid.uuid4().hex[:8]}"
-    tmp.mkdir()
-    try:
-        files = {t: tmp / f"{t}.parquet" for t in TABLES}
-        tables: dict[str, Any] = {}
-        for t, out in files.items():
-            con.execute(f"COPY {t} TO {_lit(str(out))} (FORMAT parquet, COMPRESSION zstd)")
-            tables[t] = {"path": f"{t}.parquet", "rows": con.execute(f"SELECT count(*) FROM {t}").fetchone()[0],
-                         "sha256": sha256_file(out)}
-        out_checks = checks.output_checks(con, files)
-        con.close()
-        results += out_checks
-        if failed := [c for c in out_checks if not c.ok]:
-            raise SilverCheckError(failed)
-        (silver / "manifest.json").unlink(missing_ok=True)
-        for t in TABLES:
-            os.replace(tmp / f"{t}.parquet", silver / f"{t}.parquet")
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+    def make_manifest(tables: dict[str, Any], out_checks: list[checks.Check]) -> dict[str, Any]:
+        return {
+            "stage": "silver",
+            "started_at": started.isoformat(),
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "code": {"git": git_head(),
+                     "sql_sha256": {p.name: sha256_file(p) for p in sorted(SQL_DIR.glob("staging_*.sql"))}},
+            "inputs": {
+                "dataset": {"release_id": ds.release_id, "parquet": str(ds.parquet.relative_to(bronze)),
+                            "sha256": ds.parquet_sha256, "as_of": ds.as_of.isoformat()},
+                "deliveries": {"files": len(deliveries),
+                               "sha256": {str(p.relative_to(bronze)): sha256_file(p) for p in deliveries}},
+                "lookups": {"files": len(lookups),
+                            "sha256": {str(p.relative_to(bronze)): sha256_file(p) for p in lookups}},
+            },
+            "tables": tables,
+            "checks": [c.as_dict() for c in results + out_checks],
+            "report": rep,
+        }
 
-    manifest = {
-        "stage": "silver",
-        "started_at": started.isoformat(),
-        "finished_at": datetime.now(timezone.utc).isoformat(),
-        "code": {"git": git_head(),
-                 "sql_sha256": {p.name: sha256_file(p) for p in sorted(SQL_DIR.glob("staging_*.sql"))}},
-        "inputs": {
-            "dataset": {"release_id": ds.release_id, "parquet": str(ds.parquet.relative_to(bronze)),
-                        "sha256": ds.parquet_sha256, "as_of": ds.as_of.isoformat()},
-            "deliveries": {"files": len(deliveries),
-                           "sha256": {str(p.relative_to(bronze)): sha256_file(p) for p in deliveries}},
-        },
-        "tables": tables,
-        "checks": [c.as_dict() for c in results],
-        "report": rep,
-    }
-    _write_json_atomic(silver / "manifest.json", manifest)
-    return manifest
+    try:
+        return publish(con, TABLES, silver, "manifest.json", make_manifest, "silver")
+    finally:
+        con.close()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -203,13 +128,15 @@ def main(argv: list[str] | None = None) -> int:
     root = args.data_dir or data_dir()
     try:
         m = build_silver(root / "bronze", root / "silver")
-    except SilverCheckError as e:
+    except checks.CheckError as e:
         print("silver: 차단 검사 실패 — 기존 silver를 그대로 둔다", file=sys.stderr)
         for c in e.failed:
             print(f"  FAIL {c.name}: actual={c.actual!r} expected={c.expected!r}", file=sys.stderr)
         return 1
     ds = m["inputs"]["dataset"]
-    print(f"silver: dataset {ds['release_id']} (as_of {ds['as_of']}), deliveries 파일 {m['inputs']['deliveries']['files']}개")
+    inp = m["inputs"]
+    print(f"silver: dataset {ds['release_id']} (as_of {ds['as_of']}), "
+          f"deliveries 파일 {inp['deliveries']['files']}개, lookup 파일 {inp['lookups']['files']}개")
     for t, info in m["tables"].items():
         print(f"  {t:<17} {info['rows']:>10,}행")
     print(f"  검사 {len(m['checks'])}개 통과")
@@ -218,6 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  단가 이상치: 10원 미만 {pe['lt_10']}건({pe['lt_10_pct']}%), 10억 이상 {pe['ge_1e9']}건({pe['ge_1e9_pct']}%)")
     print(f"  납품 합계 단순 합산 시 과대: {r['dlv_overcount_pct']}%")
     print(f"  계약 유효(as_of): {r['contract_active']}")
+    if r["claim_state"]:
+        print(f"  선점 상태(최근 lookup): {r['claim_state']}")
     return 0
 
 

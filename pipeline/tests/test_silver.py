@@ -9,7 +9,7 @@ import pytest
 
 from conftest import dlv, listing, quality_for
 from savetax_pipeline import checks
-from savetax_pipeline.silver import SilverCheckError, build_silver
+from savetax_pipeline.silver import TABLES, SilverCheckError, build_silver
 
 
 def read(silver: Path, table: str, where: str = "true", order: str = "1") -> list[dict]:
@@ -109,7 +109,7 @@ def test_written_parquet_has_no_float_columns(make_bronze, tmp_path):
     silver = tmp_path / "silver"
     m = build_silver(make_bronze([listing(**dlv(1, 100))]), silver)
     float_checks = [c for c in m["checks"] if c["name"].endswith("parquet_float_columns")]
-    assert len(float_checks) == 4 and all(c["actual"] == [] for c in float_checks)
+    assert len(float_checks) == len(TABLES) and all(c["actual"] == [] for c in float_checks)
 
 
 def test_output_check_catches_hugeint_written_as_double(tmp_path):

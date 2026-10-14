@@ -23,7 +23,8 @@
 - 데이터 REST·MCP 공유 3,600회/시간, 검색 120회/분(별도 버킷), 요청 단위로 센다.
 - `GET api.savetax.now/v1/me`, MCP `savetax_get_me`는 예산에서 차감되지 않는다(분당 120회 별도 상한).
 - MCP `initialize`·`tools/list`·`savetax_get_guide` 비용은 0.
-- 제출 누적·일일 한도: `GET /v1/events/current/me`의 `limits`(null=무제한)·`remaining`. 거절(409 REFORM_ALREADY_FOUND, 409 PRODUCT_ALREADY_CLAIMED, 422 PRICE_GAP_TOO_SMALL, 503 CATALOG_UNAVAILABLE)은 횟수에 세지 않는다. 철회는 횟수가 돌아오지 않고, 운영진 반려는 1회를 돌려준다.
+- 대회 API: 호출 속도 제한·Retry-After 없음. 예외는 새 물품 조회(`items/{item_id}` 첫 호출 = 스냅샷 생성)로 참가자당 분당 30건 + 서버 전체 상한, 넘으면 429 `RATE_LIMITED`(1분쯤 대기, 횟수 안 셈). 우리 쪽 운영은 초당 1회 이하.
+- 제출 누적·일일 한도: `GET /v1/events/current/me`의 `limits`(null=무제한)·`remaining`. 10/14 기준 `max_claims_per_day` 50, `max_claims_total` 100, 하루 경계 KST 자정. 거절(409 REFORM_ALREADY_FOUND, 409 PRODUCT_ALREADY_CLAIMED, 422 PRICE_GAP_TOO_SMALL, 503 CATALOG_UNAVAILABLE)은 횟수에 세지 않는다. 철회는 횟수가 돌아오지 않고, 운영진 반려는 1회를 돌려준다.
 
 ## 대회 API 주요 엔드포인트
 
@@ -38,8 +39,8 @@
 
 ### 참가 인증 필요
 - `GET /v1/events/current/me`: 한도, 사용량, remaining, 제출 목록
-- `GET /v1/events/current/items/lookup?ids=a,b,…`(최대 100): 행별 `state ∈ available|claimed|claimed_by_me|reform_found|not_found`. 등재번호도 받아 item_id로 변환해 준다. 횟수 미사용
-- `GET /v1/events/current/items/{item_id}`: `snapshot{name, model, manufacturer, category, listings[], source_release, fetched_at}`, `facts[{fact_id, listing_id, contract_no, request_no, line_no, unit, tax_basis, basis_id, unit_price_krw, quantity, comparable_amount_krw, scorable}]`. 첫 호출 때 스냅샷이 고정된다
+- `GET /v1/events/current/items/lookup?ids=a,b,…`(최대 100): 행별 `state ∈ available|claimed|claimed_by_me|reform_found|not_found`. 등재번호도 받아 item_id로 변환해 준다. 횟수 미사용. (실측 10/14) 서버가 처음 보는 물품이 섞이면 lookup도 429 `RATE_LIMITED`("새 물품을 너무 빠르게 조회하고 있습니다 — 1분쯤 뒤")가 난다. 약 2,400개 연속 조회 뒤 걸렸다
+- `GET /v1/events/current/items/{item_id}`: `snapshot{name, model, manufacturer, category, listings[], source_release, fetched_at}`, `facts[{fact_id, listing_id, contract_no, request_no, line_no, unit, tax_basis, basis_id, unit_price_krw, quantity, comparable_amount_krw, scorable}]`. 첫 호출 때 서버가 물품 요약·등재 목록·최종 차수 납품 라인을 가져와 스냅샷으로 고정한다(이후 모두에게 같은 값). fact 2,000개 초과면 금액순으로 자르고 `facts_truncated: true`. 데이터 API 예산을 쓰지 않는다
 - `GET /v1/events/current/found?q=`: 발견 상품(참가자 등록 + 개혁신당 공개분)
 - `GET /v1/events/current/feed?limit=1..100`: 최근 접수·수정·철회. `delta_krw` 음수 = 철회
 - `GET /v1/events/current/stream`: SSE. `Last-Event-ID: <stream_cursor>`, 15초 heartbeat `:hb`. `stream.resync_required`면 순위표를 다시 읽고 재구독

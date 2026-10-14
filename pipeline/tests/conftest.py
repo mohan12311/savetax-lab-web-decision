@@ -121,7 +121,8 @@ BronzeFactory = Callable[..., Path]
 @pytest.fixture
 def make_bronze(tmp_path: Path) -> BronzeFactory:
     def make(rows: list[dict[str, Any]], *, quality: dict[str, Any] | None = None,
-             deliveries: list[dict[str, Any]] | None = None) -> Path:
+             deliveries: list[dict[str, Any]] | None = None,
+             lookups: list[dict[str, Any]] | None = None) -> Path:
         bronze = tmp_path / "bronze"
         rel = bronze / "dataset" / RELEASE
         (rel / "_meta").mkdir(parents=True, exist_ok=True)
@@ -136,6 +137,12 @@ def make_bronze(tmp_path: Path) -> BronzeFactory:
             "source": {"stamp": {"listing_observed_max": "2026-10-04 04:11:45.975731+00"}},
             "quality": quality if quality is not None else quality_for(rows),
         }))
+        if lookups:
+            d = bronze / "contest" / "lookup" / "dt=2026-10-14"
+            d.mkdir(parents=True, exist_ok=True)
+            with gzip.open(d / "part-test-0001.jsonl.gz", "wt", encoding="utf-8") as f:
+                for e in lookups:
+                    f.write(json.dumps(e, ensure_ascii=False) + "\n")
         if deliveries:
             d = bronze / "data" / "deliveries" / "dt=2026-10-14"
             d.mkdir(parents=True, exist_ok=True)
@@ -145,3 +152,11 @@ def make_bronze(tmp_path: Path) -> BronzeFactory:
         return bronze
 
     return make
+
+
+def lookup_envelope(items: list[tuple[str, str]], *, fetched_at: str = "2026-10-14T06:00:00Z") -> dict[str, Any]:
+    """items/lookup 응답 봉투. items는 (item_id, state)."""
+    return {"fetched_at": fetched_at, "source": "contest_api", "endpoint": "/v1/events/current/items/lookup",
+            "params": {"ids": [i for i, _ in items]}, "status": 200, "request_id": None,
+            "body": {"items": [{"input": i, "kind": "item", "item_id": i, "state": st, "message": ""}
+                               for i, st in items]}}

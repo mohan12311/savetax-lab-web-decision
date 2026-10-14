@@ -4,9 +4,9 @@
 
 | 구분 | 내용 | 설계에 주는 영향 |
 |---|---|---|
-| 데이터 규모 | 등재 1,052,815행 × 35컬럼(zip 48MB), 납품요구 원장 2,845,861행(최근 1년 최종 라인 1,907,120개), 대회 채점 대상 products_total 46,857 | 단일 노드 컬럼 저장(Parquet + DuckDB)으로 충분. 원장 라인 단위 분석까지 수백만 행 |
+| 데이터 규모 | 등재 1,052,815행 × 35컬럼(zip 48MB), 납품요구 원장 2,845,861행(최근 1년 최종 라인 1,907,120개), 대회 대상은 물품 전체(약 99만), 스냅샷은 조회·등록된 물품만 | 단일 노드 컬럼 저장(Parquet + DuckDB)으로 충분. 원장 라인 단위 분석까지 수백만 행 |
 | 데이터 API 한도 | 3,600회/시간 공유(REST·MCP), 검색 120회/분 별도 | 하루 최대 86,400회. 남은 약 11일 동안 전체 등재 상세를 다 받을 수 없음 → **데이터셋 zip이 기준선, API는 후보 검증용** |
-| 대회 API | 한도 미공개, 제출 누적·일일 한도 있음 | 보수적 레이트리밋. 제출은 후보 품질이 가장 높은 것부터 |
+| 대회 API | 속도 제한 없음(새 물품 조회만 분당 30건), 제출 하루 50건·누적 100건 | 우리 쪽 초당 1회 이하. 제출 100건이 실제 병목 — 후보 품질이 가장 높은 것부터 |
 | 근거 검사(lint) | 공인 https 정적 HTML만 읽음 | 시중가 소스는 정적 페이지 우선. JS 페이지는 탐색용으로만 |
 | 선착순 | 같은 item_id는 먼저 등록한 1명만 | 후보 → 제출까지의 지연(latency)이 곧 경쟁력. 파이프라인을 증분(incremental)으로 설계 |
 | 정확성 | 확정 금액 ≤ 예상액, 검증에서 깎임 | 단위·수량·세금 기준 일치를 자동 검사하는 게이트 필수 |
@@ -77,7 +77,7 @@ collector/
 | `check` | — | 콘솔 출력 | `/v1/events/current` 상수, 대회 `/me` 한도·remaining, 데이터 `/v1/me` 사용량 |
 | `dataset` | — | `data/bronze/dataset/<ver>/` | curl과 동일한 GET, `SHA256SUMS` 검증, 이어받기 없음 |
 | `crawl --kind listing\|item\|deliveries` | state 큐(gold 후보에서 적재) | `bronze/data/<kind>/dt=YYYY-MM-DD/part-*.jsonl.gz` (`run.Writer("data", kind)`) | deliveries는 `final=1`, `limit≤1000`, offset 페이지. 봉투 `body`는 응답 전체(`{data:{id, contractNo, finalSummary, rows, page}}`) — silver `deliveries_final`이 이 경로를 읽는다 |
-| `lookup` | 후보 item_id 목록 | `bronze/contest/lookup/…` | 100개 배치, 제출 횟수 미사용 |
+| `lookup --from <파일> [--limit N]` | `data/gold/lookup_ids.txt`(`make candidates`가 만든다) | `bronze/contest/lookup/dt=…/part-*.jsonl.gz` | 100개 배치, 스냅샷 안 만듦, 제출 횟수 미사용. 큐 없이 매번 목록 전체(끊기면 다시 실행). 응답에 빠진 번호는 missing으로 센다 |
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
 | `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
 | `scrape --source danawa` | `--query`·`--from 파일`·`--pcode` (state 큐 `scrape_danawa`) | `bronze/retail/danawa/{search,product}/dt=…/part-*.jsonl.gz` + `retail/danawa/html/dt=…/<sha256>.html.gz` | 도메인별 리미터, robots.txt 준수, 403이면 중단 |
@@ -131,7 +131,7 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 | `deliveries_final` | (request_no, line_no) | `bronze/data/deliveries` 봉투 | `finalRequest='Y'` 라인만, 공유 등재·재수집 중복 제거(최신 `fetched_at`), 금액·수량 문자열 → DECIMAL(20,4), `listing_ids`·`item_id`·`is_zero`. 사업자번호는 읽지 않는다. crawl 전이라 지금은 빈 표 |
 | `contest_facts` | fact_id | 대회 items/{item_id} | (M4) `unit`, `tax_basis`, `basis_id`, `unit_price_krw`, `quantity`, `comparable_amount_krw`, `scorable` 원문 그대로 |
 | `retail_offers` | (url, observed_at) | 스크래퍼 | (M5) 가격·VAT·배송 조건, 원문 sha256 |
-| `claim_state` | item_id | lookup·watch | (M4) 최신 상태 |
+| `claim_state` | item_id | `bronze/contest/lookup` 봉투 | 물품별 가장 최근 lookup 결과(state·checked_at). item_id를 못 푼 행은 뺀다. 선점 판단에만 쓴다 |
 
 - as_of = 데이터셋 manifest `source.stamp.listing_observed_max`의 KST 날짜(20261010-r5는 2026-10-04). 오늘 날짜가 아니라 등재 관측일이라 재실행해도 결과가 같다.
 - `manifest.json`: 입력(데이터셋 sha256, deliveries 파일별 sha256), 코드(`git describe`, SQL 파일 sha256), 표별 행 수·sha256, 검사 결과, 리포트.
@@ -147,17 +147,23 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 
 참고(10/14 실측): deliveries `finalSummary.lineCount`는 수량·금액이 모두 0인 라인을 포함하지만 데이터셋 `dlv_lines`는 뺀다(같은 등재에서 5 vs 4). 금액 합은 같다.
 
-### 4.3 gold 마트와 후보 점수
-1. `mart_item_dispersion`: 같은 item_id·같은 단위의 등재 간 단가 min/median/max → 같은 물건을 비싸게 산 등재 탐지.
-2. `mart_model_dispersion`: 정규화 모델명 기준, item_id를 넘어선 단가 분산.
-3. `mart_category_outlier`: 세부품명(detailName) 안에서 단가의 robust z-score(MAD).
-4. `mart_candidates`:
-   - `C_est` = 해당 물품의 최종 납품 금액 합(데이터셋 dlv_* 또는 deliveries_final)
-   - `M_est` = 시중가 추정(내부 최저가 → 시중 offer가 확보되면 교체)
-   - `amount_upper` = `C_est − M_est × Q_est` (상한 추정)
-   - `gap_pass_est` = `P ≥ 1.2×M_est` 또는 `P − M_est ≥ 1,000,000`
-   - `priority` = `amount_upper × p_match × p_lint` (확률은 AI 판정·소스 정적 여부로 보정)
-5. 상위 N개 → state 큐에 lookup/facts 작업 적재 → facts 확보 후 **fact 기준으로 다시 계산**(최종 판단은 항상 fact 값).
+### 4.3 gold 후보 (M3, `make candidates`)
+
+`python -m savetax_pipeline.candidates`가 `sql/mart_candidates.sql`로 `data/gold/candidates.parquet`(납품 있는 물품 1행), `lookup_ids.txt`, `candidates.manifest.json`을 만든다. **탐색용 추정**이다 — 시중가 근거를 찾을 순서를 정할 뿐, 제출 값은 대회 fact로 다시 계산한다.
+
+- 키(계약×물품)마다 구매 단가 p = 키에 묶인 등재가의 중앙값(주문 평균 단가 ÷ 등재가의 중앙값이 1.0이라 대용으로 충분), 납품 a = `dlv_amount`.
+- 기준가 m은 **조달 안에서 같은 것이 더 싸게 등재된 가격**(시중가 아님). 이상 단가 등재는 기준가에서 뺀다.
+- 잠재액은 대회 산식 C − M×Q를 키마다 a×(p−m)÷p로 근사하고, gap 기준(P ≥ 1.2M 또는 P−M ≥ 100만)을 넘는 키만 더한다.
+
+| 티어 | 기준가 | 조건 | 성격(10/14 첫 실행) |
+|---|---|---|---|
+| A | 같은 물품번호·단위의 최저 등재가 | 잠재액 ≥ 1천만 | 745개. 같은 물건이라는 근거는 가장 강하지만, 상위는 레미콘(지역별 가격)·금속제패널처럼 시중 판매 페이지가 없는 품목이 많다 |
+| B | 같은 정규화 모델명(영문·숫자 5자 이상)·세부품명·단위인 다른 물품번호의 최저가 | 잠재액 ≥ 1천만 | 1,687개. 상위는 소프트웨어 라이선스 — 채널 수·에디션 차이일 수 있어 사람이 봐야 한다 |
+| C | 세부품명·단위 중앙값(30건 이상) | 중앙값의 3배 이상, 납품 ≥ 1억 | 1,919개. 포장·규격 차이(예: 제설제 1000kg 대 20kg)가 많이 섞여 가장 약하다 |
+
+- 정렬: 티어 있는 것 먼저, 추정 잠재액순. `make candidates`는 티어별 상위 10을 따로 보여 준다(티어끼리 같은 눈금이 아니다).
+- `lookup_ids.txt`: 티어가 있거나 납품 1억 원 이상, 이미 `claimed`·`reform_found`·`not_found`로 확인된 것 제외. 흐름은 `make candidates → make lookup → make silver → make candidates`.
+- 다음 단계: 시중가 근거 가능성(정적 판매 페이지가 있는 품목인가)을 점수에 넣고, 대회 fact로 C·Q·P를 확정해 다시 계산한다(M4).
 
 ## 5. AI 에이전트 계층
 

@@ -32,7 +32,7 @@ var commands = []command{
 	{"check", "대회 상수(/v1/events/current)·내 한도(/me)·데이터 API 사용량·데이터셋 버전 확인", runCheck},
 	{"dataset", "데이터셋 zip 다운로드 → SHA256 검증 → data/bronze/dataset/<ver>/", runDataset},
 	{"crawl", "(M4) 후보 큐 기반 listings/items/deliveries 수집", notYet("M4")},
-	{"lookup", "(M4) items/lookup 100개 배치 선점 조회", notYet("M4")},
+	{"lookup", "물품번호 목록의 선점 상태를 items/lookup으로 100개씩 조회 → data/bronze/contest/lookup/", runLookup},
 	{"facts", "(M4) items/{item_id} facts 수집", notYet("M4")},
 	{"watch", "(M6) SSE 피드 감시", notYet("M6")},
 	{"scrape", "다나와 검색·상품 페이지 수집 → data/bronze/retail/danawa/ (원문 HTML + 추출)", runScrape},

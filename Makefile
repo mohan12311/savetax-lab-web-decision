@@ -26,7 +26,8 @@ check:       ; $(GO) check
 dataset:     ; $(GO) dataset
 silver:      ; $(PY) python -m savetax_pipeline.silver
 candidates:  ; $(PY) python -m savetax_pipeline.candidates
-lookup:      ; $(GO) lookup --from ../data/gold/candidates.parquet
+# 후보 선점 조회(대회 API, 횟수 안 씀). 끝나면 make silver && make candidates로 상태를 합친다.
+lookup:      ; $(GO) lookup --from $(SAVETAX_DATA_DIR)/gold/lookup_ids.txt $(ARGS)
 facts:       ; $(GO) facts --top 500
 watch:       ; $(GO) watch
 # scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'

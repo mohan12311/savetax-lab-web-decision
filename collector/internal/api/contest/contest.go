@@ -5,6 +5,9 @@ package contest
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"savetax-lab/collector/internal/httpx"
@@ -62,4 +65,37 @@ func (c *Client) Me(ctx context.Context) (json.RawMessage, *httpx.Response, erro
 		return nil, nil, err
 	}
 	return resp.Body, resp, nil
+}
+
+// LookupMax는 items/lookup 한 번에 물을 수 있는 번호 수다.
+const LookupMax = 100
+
+// LookupItem은 items/lookup 결과 한 행이다. State는 available | claimed | claimed_by_me | reform_found | not_found.
+type LookupItem struct {
+	Input           string `json:"input"`
+	Kind            string `json:"kind"` // item | listing | unknown
+	ItemID          string `json:"item_id"`
+	State           string `json:"state"`
+	Message         string `json:"message"`
+	MySubmissionID  string `json:"my_submission_id,omitempty"`
+	CurrentRevision *int   `json:"current_revision,omitempty"`
+}
+
+type LookupResult struct {
+	Items []LookupItem `json:"items"`
+}
+
+// Lookup은 GET /v1/events/current/items/lookup이다(물품번호·등재번호 최대 100개).
+// 스냅샷을 만들지 않고 제출 횟수도 쓰지 않는다. 원문도 함께 돌려준다(bronze 저장용).
+func (c *Client) Lookup(ctx context.Context, ids []string) (*LookupResult, *httpx.Response, error) {
+	if len(ids) == 0 || len(ids) > LookupMax {
+		return nil, nil, fmt.Errorf("lookup은 번호 1~%d개: %d개를 받았다", LookupMax, len(ids))
+	}
+	var res LookupResult
+	q := url.Values{"ids": {strings.Join(ids, ",")}}
+	resp, err := c.h.GetJSON(ctx, "/v1/events/current/items/lookup", q, true, &res)
+	if err != nil {
+		return nil, resp, err
+	}
+	return &res, resp, nil
 }

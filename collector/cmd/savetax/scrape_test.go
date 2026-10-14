@@ -104,7 +104,13 @@ func newTestScraper(t *testing.T, f *fakeDanawa, top int) (*scraper, *state.Stor
 
 func readEnvelopes(t *testing.T, root, kind string) []bronze.Envelope {
 	t.Helper()
-	parts, _ := filepath.Glob(filepath.Join(root, "retail", "danawa", kind, "dt=*", "*.jsonl.gz"))
+	return readEnvelopesIn(t, filepath.Join(root, "retail", "danawa", kind))
+}
+
+// readEnvelopesIn은 <dir>/dt=*/*.jsonl.gz의 봉투를 모두 읽는다.
+func readEnvelopesIn(t *testing.T, dir string) []bronze.Envelope {
+	t.Helper()
+	parts, _ := filepath.Glob(filepath.Join(dir, "dt=*", "*.jsonl.gz"))
 	var out []bronze.Envelope
 	for _, p := range parts {
 		f, err := os.Open(p)

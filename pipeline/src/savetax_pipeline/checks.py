@@ -22,6 +22,15 @@ NULL_PRESERVED = (
 )
 
 
+class CheckError(RuntimeError):
+    """차단 검사 실패. 게시하지 않고 기존 결과를 그대로 둔다."""
+
+    def __init__(self, failed: list["Check"], stage: str = "silver"):
+        self.failed = failed
+        super().__init__(f"{stage} 차단 검사 실패: " + ", ".join(
+            f"{c.name}(actual={c.actual!r}, expected={c.expected!r})" for c in failed))
+
+
 @dataclass(frozen=True)
 class Check:
     name: str
@@ -103,6 +112,7 @@ def blocking_checks(con: duckdb.DuckDBPyConnection, manifest: dict[str, Any]) ->
 
     add("deliveries_final.key_unique",
         "SELECT count(*) - count(DISTINCT (request_no, line_no)) FROM deliveries_final", 0)
+    add("claim_state.key_unique", "SELECT count(*) - count(DISTINCT item_id) FROM claim_state", 0)
     return checks
 
 
@@ -147,6 +157,8 @@ def report(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
                        FROM items""").fetchone(),
     ))
     r["deliveries"] = deliveries_report(con)
+    r["claim_state"] = dict(con.execute(
+        "SELECT coalesce(state, '(null)'), count(*) FROM claim_state GROUP BY 1 ORDER BY 2 DESC, 1").fetchall())
     return r
 
 

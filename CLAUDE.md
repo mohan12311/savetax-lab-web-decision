@@ -21,7 +21,9 @@
 - 예상액 = `floor(max(C − B×Q, 0))`, C=`comparable_amount_krw`, Q=`quantity`(둘 다 fact 값), B=내 비교 단가. 서버가 계산한다.
 - 가격 차이 기준(`price_gap.rule = enforce`): 납품 단가 P와 시중가 M이 **P ≥ 1.2×M 또는 P − M ≥ 1,000,000원**이어야 등록된다. 미달은 422 PRICE_GAP_TOO_SMALL(횟수에 안 셈).
 - 상금 = 1,000만 × (내 확정 금액 ÷ 전체 확정 금액). 산정액 1만 원 미만은 0원. 확정 금액은 예상액보다 커지지 않는다. 즉 **검증에서 살아남는 금액**이 점수다.
-- 현재 상황(10/14 11:55): 참가 502명, 선점 4,304개 / products_total 46,857, 예상 합계 약 9,039억(보류 약 1,297억), suspect 400건. 고액 물품은 상당수 선점된 것으로 추정.
+- 대상은 조달 물품 **전체**(약 99만 개). 서버는 누가 조회·등록한 물품만 그때 스냅샷으로 가져온다(rules.md 1절).
+- **제출 한도: 하루 50건·누적 100건**(10/14 `/me`, 하루 경계 KST 자정). 끝까지 낼 수 있는 물품이 100개뿐이라 데이터 API 예산보다 슬롯 선택이 병목이다(`docs/DELIVERIES_BUDGET.md`).
+- 현재 상황(10/14 11:55): 참가 502명, 선점 4,304개 / products_total 46,857(스냅샷이 만들어진 물품 수로 추정, 채점 대상 범위가 아님), 예상 합계 약 9,039억(보류 약 1,297억), suspect 400건. 고액 물품은 상당수 선점된 것으로 추정.
 
 ## 아키텍처 요약 (자세히는 docs/ARCHITECTURE.md)
 ```
@@ -66,8 +68,10 @@ docs/        ARCHITECTURE.md API.md RULES.md
 ## 호출 한도 (설계의 핵심 제약)
 - 데이터 API(api.savetax.now)·MCP 공유: **3,600회/시간**, 검색은 별도 **120회/분**. `/v1/me`로 사용량 확인.
 - 3,600회/시간 × 남은 기간으로는 105만 등재 전체 상세 크롤이 불가능하다. **기준 데이터는 데이터셋 zip(48MB)**, API는 후보 검증에만 쓴다.
-- 대회 API 호출 한도는 문서에 없다. 보수적으로 초당 1회 이하, 429면 지수 백오프.
+- 대회 API는 호출 속도 제한이 없다(api.md). 예외: **새 물품 조회**(`items/{item_id}` 첫 호출 = 스냅샷 생성)만 참가자당 분당 30건 + 서버 전체 상한, 넘으면 429 `RATE_LIMITED`(Retry-After 없음, 1분쯤 대기, 횟수에 안 셈). 그래도 우리는 초당 1회 이하로 보낸다.
+- 대회 `items/{item_id}`는 최종 차수 납품 라인(fact)을 채점 값과 함께 준다. 데이터 API 예산을 쓰지 않으므로 라인이 필요하면 deliveries보다 이쪽을 먼저 쓴다.
 - `items/lookup`은 최대 100개씩, 제출 횟수를 쓰지 않는다. 제출 직전에 반드시 다시 조회한다.
+- 문서는 lookup을 "가벼운 조회"라 하지만, **서버가 처음 보는 물품은 lookup도 새 물품 조회 한도에 걸린다**(10/14 실측: 약 2,400개를 연속으로 물은 뒤 429 `RATE_LIMITED`). `savetax lookup`은 65초 기다렸다가 같은 묶음을 다시 묻는다. 그래서 lookup 목록은 중요한 순서로 둔다.
 - 제출 누적·일일 한도는 `GET /v1/events/current/me`의 `limits`·`remaining`에서 확인한다.
 
 ## 작업 원칙
@@ -85,7 +89,7 @@ docs/        ARCHITECTURE.md API.md RULES.md
 make dataset      # 데이터셋 zip 다운로드·체크섬 검증 → data/bronze/dataset/
 make silver       # Python: 정규화 Parquet 생성
 make candidates   # Python: 후보 마트 생성 (data/gold/candidates.parquet)
-make lookup       # Go: 후보 선점 여부 일괄 조회
+make lookup       # Go: data/gold/lookup_ids.txt 선점 여부 일괄 조회(ARGS='--limit N'). 끝나면 make silver && make candidates
 make facts        # Go: 상위 후보 items/{id} facts 수집
 make scrape ARGS='--query <모델명> [--top 3] | --from <파일> | --pcode <코드>'  # Go: 다나와 시중가 수집(원문+추출)
 make agent        # AI: 매칭·근거 초안

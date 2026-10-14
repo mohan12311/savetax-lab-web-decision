@@ -31,7 +31,7 @@ type Config struct {
 
 	DataRPS    float64 // 데이터 API 시간 버킷(3,600/h)
 	SearchRPS  float64 // 데이터 API 검색 버킷(120/min)
-	ContestRPS float64 // 대회 API(한도 미공개)
+	ContestRPS float64 // 대회 API(속도 제한 없음, 새 물품 조회만 분당 30건 — 우리는 기본 1회/초)
 	RetailRPS  float64 // 시중 사이트 도메인별
 
 	ContestBaseURL string

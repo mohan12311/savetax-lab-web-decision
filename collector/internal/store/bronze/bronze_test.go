@@ -2,9 +2,13 @@ package bronze
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -114,5 +118,55 @@ func TestWriteFileAtomic(t *testing.T) {
 	ents, _ := os.ReadDir(filepath.Dir(p))
 	if string(b) != "2" || len(ents) != 1 {
 		t.Errorf("content=%s entries=%d", b, len(ents))
+	}
+}
+
+func TestWriteBlobContentAddressed(t *testing.T) {
+	root := t.TempDir()
+	run := NewRun(root, "scrape", nil)
+	at := time.Date(2026, 10, 14, 3, 0, 0, 0, time.UTC)
+	html := []byte("<html><body>삼성전자 S24C310 133,990원</body></html>")
+	ref, err := run.WriteBlob("retail/danawa", "html", at, html, "html", "text/html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(html)
+	if ref.SHA256 != hex.EncodeToString(sum[:]) || ref.Bytes != int64(len(html)) {
+		t.Errorf("ref가 압축 전 원문 기준이 아니다: %+v", ref)
+	}
+	want := "retail/danawa/html/dt=2026-10-14/" + ref.SHA256 + ".html.gz"
+	if ref.Path != want {
+		t.Errorf("path %q, want %q", ref.Path, want)
+	}
+	f, err := os.Open(filepath.Join(root, ref.Path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(gz)
+	if err != nil || !bytes.Equal(got, html) {
+		t.Fatalf("원문이 바이트 그대로가 아니다: err=%v", err)
+	}
+
+	// 같은 날 같은 내용은 다시 쓰지 않고 manifest에도 한 번만 오른다.
+	ref2, err := run.WriteBlob("retail/danawa", "html", at, html, "html", "text/html")
+	if err != nil || ref2 != ref {
+		t.Fatalf("두 번째 ref=%+v err=%v", ref2, err)
+	}
+	mpath, err := run.Finish(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(mpath)
+	var m Manifest
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Files) != 1 || m.Files[0].Path != want {
+		t.Errorf("manifest files = %+v", m.Files)
 	}
 }

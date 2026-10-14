@@ -21,7 +21,7 @@
  api.savetax ──▶│ crawl     : listings/{id}, items/{id}, deliveries?final=1 (후보 큐 기반)     │──▶ data/bronze/*.jsonl.gz
  hackathon   ──▶│ lookup    : items/lookup (100개 배치) · facts: items/{item_id}               │      + manifest.json
  hackathon   ──▶│ watch     : SSE /stream 또는 feed 폴링 → 선점·철회 이벤트                   │
- retail web  ──▶│ scrape    : 정적(net/http+goquery/colly) → 필요 시 chromedp                 │──▶ data/bronze/retail/
+ retail web  ──▶│ scrape    : 다나와 정적 HTML(net/http+goquery), robots.txt 준수             │──▶ data/bronze/retail/
                 └────────────────────────────────────────────────────────────────────────────┘
                                            │
                 ┌──────────── Python pipeline (DuckDB + Polars) ────────────┐
@@ -59,7 +59,7 @@ collector/
   internal/api/contest/         # hackathon.savetax.now 클라이언트 (오류: 평면 {code,message,request_id,retryable})
   internal/store/bronze/        # JSONL.gz 롤링 writer + manifest
   internal/store/state/         # SQLite(WAL) 작업 큐·체크포인트
-  internal/scrape/              # Source 인터페이스, static/, headless/, extract/
+  internal/scrape/              # Site(호스트별 robots·리미터·토큰 없는 클라이언트), danawa/(검색·상품 추출)
   internal/submit/              # claim 빌더, 사전 검증, preview/submit/revise/withdraw
 ```
 
@@ -80,7 +80,7 @@ collector/
 | `lookup` | 후보 item_id 목록 | `bronze/contest/lookup/…` | 100개 배치, 제출 횟수 미사용 |
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
 | `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
-| `scrape --source <name>` | 매칭 대상 모델 목록 | `bronze/retail/<domain>/dt=…/` (HTML.gz + offers.jsonl) | 도메인별 리미터, robots.txt 준수 |
+| `scrape --source danawa` | `--query`·`--from 파일`·`--pcode` (state 큐 `scrape_danawa`) | `bronze/retail/danawa/{search,product}/dt=…/part-*.jsonl.gz` + `retail/danawa/html/dt=…/<sha256>.html.gz` | 도메인별 리미터, robots.txt 준수, 403이면 중단 |
 | `submit` | 승인된 claim JSON | `bronze/contest/receipts/…` | 기본 preview만. `--confirm`일 때만 POST |
 
 ### 3.4 bronze 레코드 봉투(envelope)
@@ -96,19 +96,21 @@ collector/
 - `submissions(submission_id, item_id, revision, state, lint_status, amount_krw, idempotency_key, updated_at)`
 - 동시 쓰기는 Go 쪽만. Python은 읽기 전용으로 붙거나 export된 Parquet을 읽는다(DuckDB는 단일 writer라 상태 저장소로 쓰지 않는다).
 
-### 3.6 스크래퍼
-```go
-type Source interface {
-    Name() string
-    Search(ctx context.Context, q Query) ([]Offer, error)      // 모델명·제조사로 후보 검색
-    Fetch(ctx context.Context, url string) (Page, error)        // 원문 HTML + 추출 텍스트
-}
-type Offer struct { URL, Title, Model, Seller string; PriceKRW int64; VATIncluded, ShippingIncluded *bool; ObservedAt time.Time }
+### 3.6 스크래퍼 (M5, 다나와)
+다나와 MCP는 쓰지 않는다(2026-10-14 결정: IP 허용목록 403, 그리고 LLM이 HTML 원문을 읽지 않게 해 토큰을 아끼기 위함). 대신 Go가 다나와 정적 HTML을 직접 받아 추출하고, LLM에는 추출 결과만 넘긴다.
+
 ```
-- 정적 우선: `net/http` + `goquery`(또는 `colly`). 서버 lint가 읽을 수 있는 페이지라야 근거로 쓸 수 있다.
-- JS가 필요한 페이지: `chromedp`로 탐색만 하고, 근거 URL은 가능하면 정적 상세 페이지로 바꾼다.
-- 저장: 원문 HTML(gzip)과 `sha256`, 추출 텍스트를 함께 보관 → 나중에 인용 구간을 원문에서 재검증 가능.
-- 외부 가격 탐색 MCP(다나와, `https://mcp.ai.cowave.kr/mcp`)는 후보 탐색용. SaveTax 토큰을 보내지 않는다. 결과는 반드시 판매 페이지에서 재확인.
+savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> | --pcode <코드> [--refresh]
+  검색  search.danawa.com/dsearch.php?query=…   → 가격비교 상품(pcode·이름·스펙·최저가·하위 상품) + 쇼핑몰 개별 상품(참고용)
+  상품  prod.danawa.com/info/?pcode=…           → 이름·스펙·제조사·최저가(배송비 별도/포함)·판매처 수 + 쇼핑몰별 최저가(정적 목록 상위 일부)
+```
+- `internal/scrape.Site`: 호스트마다 robots.txt를 먼저 읽어 Disallow는 보내기 전에 막고(`ErrDisallowed`), Crawl-delay를 리미터 하한으로 건다(검색 10초, 상품은 `SAVETAX_RETAIL_RPS` 기본 0.5). 클라이언트는 토큰 없이 만든다. 403은 `ErrBlocked` → 실행 중단(같은 도메인 반복 금지).
+- 작업은 state 큐 `scrape_danawa`(`q:<검색어>`, `p:<pcode>`)로 돌아 끊겨도 이어진다. 검색이 찾은 상위 `--top`개 상품은 `p:` 작업으로 곧바로 이어 받는다. 끝난 작업은 `--refresh`로만 다시 받는다. 404는 skipped("없음"이지 가격 정상이 아님).
+- 저장: 원문 HTML은 `WriteBlob`으로 내용 주소(`<sha256>.html.gz`, sha256은 압축 전 원문)에, 추출 결과는 봉투 `body`에, 원문 위치는 봉투 `raw`에 둔다. 추출에 실패한 페이지도 원문은 남긴다(`body: null`, 구조 변경 확인용).
+- 추출 원칙: 금액은 정수 원, 못 읽은 값은 null. 페이지에 없는 값을 계산하지 않는다(배송비 포함가에서 상품가 역산 금지). 쇼핑몰 목록은 배송비 포함 표시 모드인지(`mall_prices_include_shipping`)를 함께 남긴다.
+- 쓰지 않는 경로: `/bridge/`(쇼핑몰 이동 링크), `/info/ajax/`(전체 판매처 목록) — robots Disallow. 쇼핑몰 개별 상품은 근거 페이지로 쓰지 않는다(이동 링크가 bridge이고, 오픈마켓 페이지는 근거 검사가 못 읽는다).
+- 약관: 자동 수집 명시 금지 조항은 없지만 "무단 복제·가공 금지"(콘텐츠산업 진흥법)라 저속으로만 받고, 원문은 `data/`(gitignore)에만 둔다. 테스트 픽스처는 구조만 흉내 낸 합성 HTML이다.
+- 근거로 쓸 때: 상품 페이지 URL이 근거 후보이고, quote·관측가는 보관 원문에서 다시 확인한다(6절 게이트 5). 다른 쇼핑몰·제조사 페이지가 필요해지면 같은 `Site`로 소스를 더한다.
 
 ## 4. Python pipeline (전처리·분석)
 

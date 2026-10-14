@@ -103,3 +103,34 @@ func TestCheckpoint(t *testing.T) {
 		t.Errorf("checkpoint = %q %v %v", v, ok, err)
 	}
 }
+
+func TestRequeue(t *testing.T) {
+	s, _ := open(t)
+	ctx := context.Background()
+	if _, err := s.Enqueue(ctx, "scrape", []Task{{"q:a", 2}, {"q:b", 1}}); err != nil {
+		t.Fatal(err)
+	}
+	keys, _ := s.Claim(ctx, "scrape", 2)
+	if len(keys) != 2 {
+		t.Fatalf("claim %v", keys)
+	}
+	if err := s.Done(ctx, "scrape", "q:a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Fail(ctx, "scrape", "q:b", errors.New("boom"), 1); err != nil {
+		t.Fatal(err)
+	}
+	n, err := s.Requeue(ctx, "scrape", []string{"q:a", "q:b", "q:none"})
+	if err != nil || n != 2 {
+		t.Fatalf("requeue n=%d err=%v", n, err)
+	}
+	c, _ := s.Counts(ctx, "scrape")
+	if c[Pending] != 2 {
+		t.Errorf("counts %v", c)
+	}
+	// 시도 횟수가 0으로 돌아가 maxAttempts=1에서도 한 번 더 시도할 수 있어야 한다.
+	s.Claim(ctx, "scrape", 2)
+	if final, _ := s.Fail(ctx, "scrape", "q:b", errors.New("boom"), 2); final {
+		t.Error("attempts가 초기화되지 않았다")
+	}
+}

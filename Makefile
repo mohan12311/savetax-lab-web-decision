@@ -28,7 +28,8 @@ candidates:  ; $(PY) python -m savetax_pipeline.candidates
 lookup:      ; $(GO) lookup --from ../data/gold/candidates.parquet
 facts:       ; $(GO) facts --top 500
 watch:       ; $(GO) watch
-scrape:      ; $(GO) scrape --source $(SOURCE)
+# scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'
+scrape:      ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax scrape --source $(or $(SOURCE),danawa) $(ARGS)
 agent:       ; cd agent && uv run python -m agent.run
 preview:     ; $(GO) submit --claim ../data/gold/claims/$(ID).json
 submit:      ; $(GO) submit --claim ../data/gold/claims/$(ID).json --confirm

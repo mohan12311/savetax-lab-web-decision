@@ -8,6 +8,7 @@
 package bronze
 
 import (
+	"bytes"
 	"compress/gzip"
 	"crypto/rand"
 	"crypto/sha256"
@@ -27,14 +28,25 @@ import (
 )
 
 // Envelope는 bronze 레코드 한 줄이다. Body는 서버 응답 원문 그대로다.
+// 응답이 JSON이 아니면(시중 HTML) 원문은 Raw가 가리키는 파일에 두고 Body에는 추출 결과를 넣는다.
 type Envelope struct {
 	FetchedAt time.Time       `json:"fetched_at"`
-	Source    string          `json:"source"`   // contest_api | data_api | dataset
+	Source    string          `json:"source"`   // contest_api | data_api | dataset | danawa
 	Endpoint  string          `json:"endpoint"` // 경로 템플릿, 예: /v1/events/current/items/{item_id}
 	Params    map[string]any  `json:"params,omitempty"`
 	Status    int             `json:"status"`
 	RequestID *string         `json:"request_id"`
 	Body      json.RawMessage `json:"body"`
+	Raw       *RawRef         `json:"raw,omitempty"`
+}
+
+// RawRef는 WriteBlob으로 보관한 원문 파일이다. SHA256은 압축 전 원문 바이트의 해시라
+// 나중에 인용문을 원문에서 다시 찾을 때 그대로 대조한다(manifest의 sha256은 디스크의 .gz 파일 해시).
+type RawRef struct {
+	Path        string `json:"path"` // root 기준 상대 경로
+	SHA256      string `json:"sha256"`
+	Bytes       int64  `json:"bytes"`
+	ContentType string `json:"content_type,omitempty"`
 }
 
 type FileEntry struct {
@@ -136,6 +148,40 @@ func (r *Run) AddFile(path string, rows int64) (FileEntry, error) {
 	r.files = append(r.files, fe)
 	r.mu.Unlock()
 	return fe, nil
+}
+
+// WriteBlob은 JSON이 아닌 원문(HTML 등)을 내용 주소 파일로 보관한다.
+//
+//	<root>/<source>/<kind>/dt=YYYY-MM-DD/<sha256>.<ext>.gz
+//
+// 같은 날 같은 내용이 이미 있으면 다시 쓰지 않고(append-only 그대로) 기존 파일을 가리킨다.
+func (r *Run) WriteBlob(source, kind string, t time.Time, data []byte, ext, contentType string) (RawRef, error) {
+	sum := sha256.Sum256(data)
+	hexSum := hex.EncodeToString(sum[:])
+	path := filepath.Join(r.root, source, kind, "dt="+t.UTC().Format("2006-01-02"), hexSum+"."+ext+".gz")
+	rel, err := filepath.Rel(r.root, path)
+	if err != nil {
+		return RawRef{}, err
+	}
+	ref := RawRef{Path: filepath.ToSlash(rel), SHA256: hexSum, Bytes: int64(len(data)), ContentType: contentType}
+	if _, err := os.Stat(path); err == nil {
+		return ref, nil
+	}
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	if _, err := gz.Write(data); err != nil {
+		return RawRef{}, err
+	}
+	if err := gz.Close(); err != nil {
+		return RawRef{}, err
+	}
+	if err := WriteFileAtomic(path, buf.Bytes()); err != nil {
+		return RawRef{}, err
+	}
+	if _, err := r.AddFile(path, 1); err != nil {
+		return RawRef{}, err
+	}
+	return ref, nil
 }
 
 // Finish는 열린 writer를 모두 닫고 manifest를 쓴다. runErr가 있으면 status=error로 남긴다.

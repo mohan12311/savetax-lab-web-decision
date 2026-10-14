@@ -35,7 +35,7 @@ var commands = []command{
 	{"lookup", "(M4) items/lookup 100개 배치 선점 조회", notYet("M4")},
 	{"facts", "(M4) items/{item_id} facts 수집", notYet("M4")},
 	{"watch", "(M6) SSE 피드 감시", notYet("M6")},
-	{"scrape", "(M5) 시중가 스크래핑", notYet("M5")},
+	{"scrape", "다나와 검색·상품 페이지 수집 → data/bronze/retail/danawa/ (원문 HTML + 추출)", runScrape},
 	{"submit", "(M6) preview → submit --confirm", notYet("M6")},
 }
 

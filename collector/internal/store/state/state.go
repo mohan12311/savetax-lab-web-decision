@@ -189,6 +189,32 @@ func (s *Store) RecoverRunning(ctx context.Context, kind string) (int, error) {
 	return int(n), nil
 }
 
+// Requeue는 지정한 작업을 상태와 상관없이 pending·시도 0으로 되돌린다(예: 끝난 수집을 새로 받기).
+// 없는 키는 무시한다. 되돌린 개수를 돌려준다.
+func (s *Store) Requeue(ctx context.Context, kind string, keys []string) (int, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	stmt, err := tx.PrepareContext(ctx, `UPDATE tasks SET status='pending', attempts=0, last_error=NULL, updated_at=? WHERE kind=? AND key=?`)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+	n := 0
+	ts := now()
+	for _, k := range keys {
+		res, err := stmt.ExecContext(ctx, ts, kind, k)
+		if err != nil {
+			return 0, err
+		}
+		c, _ := res.RowsAffected()
+		n += int(c)
+	}
+	return n, tx.Commit()
+}
+
 // Retry는 failed 작업을 pending으로 되돌리고 시도 횟수를 0으로 만든다.
 func (s *Store) Retry(ctx context.Context, kind string) (int, error) {
 	res, err := s.db.ExecContext(ctx, `UPDATE tasks SET status='pending', attempts=0, updated_at=? WHERE kind=? AND status='failed'`, now(), kind)

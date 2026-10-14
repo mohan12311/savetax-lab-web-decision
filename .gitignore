@@ -1,0 +1,11 @@
+.env
+/data/
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.db
+.venv/
+__pycache__/
+collector/bin/
+*.zip
+.omc/

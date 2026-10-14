@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "savetax": {
+      "type": "http",
+      "url": "https://mcp.savetax.now/mcp",
+      "headers": { "Authorization": "Bearer ${SAVETAX_TOKEN}" }
+    }
+  }
+}

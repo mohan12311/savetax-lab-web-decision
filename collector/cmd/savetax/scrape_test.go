@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/time/rate"
 
@@ -217,5 +218,54 @@ func TestReadQueryFile(t *testing.T) {
 	got, err := readQueryFile(p)
 	if err != nil || len(got) != 2 || got[0] != "S24C310" || got[1] != "LG 27UP850" {
 		t.Errorf("got %q err=%v", got, err)
+	}
+}
+
+// 보관한 원문을 지금 파서로 다시 읽는다: 원래 봉투는 두고 reparsed 봉투를 덧붙인다(네트워크 없음).
+func TestReparseSearchAppendsFromStoredRaw(t *testing.T) {
+	root := t.TempDir()
+	page, err := os.ReadFile("../../internal/scrape/danawa/testdata/search_flight.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 10, 14, 23, 40, 0, 0, time.UTC)
+	run := bronze.NewRun(root, "scrape", nil)
+	ref, err := run.WriteBlob("retail/danawa", "html", at, page, "html", "text/html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, _ := run.Writer("retail/danawa", "search")
+	// 옛 파서가 목록을 못 찾았던 봉투
+	old := json.RawMessage(`{"list_found":false,"catalog":[],"listings":[]}`)
+	if err := w.Write(bronze.Envelope{FetchedAt: at, Source: "danawa", Endpoint: "/dsearch.php",
+		Params: map[string]any{"query": "TX-100"}, Status: 200, Body: old, Raw: &ref}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run.Finish(nil); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1100 * time.Millisecond) // run ID는 초 단위 시각이라 다음 run 파일이 뒤에 정렬되게
+
+	out := &bytes.Buffer{}
+	if err := reparseSearch(root, []string{"--reparse"}, out); err != nil {
+		t.Fatal(err)
+	}
+	envs := readEnvelopes(t, root, "search")
+	if len(envs) != 2 {
+		t.Fatalf("봉투 %d개, want 2(원래 + reparsed)\n%s", len(envs), out)
+	}
+	var got danawa.SearchResult
+	last := envs[1]
+	if err := json.Unmarshal(last.Body, &got); err != nil {
+		t.Fatal(err)
+	}
+	if last.Params["reparsed"] != true || last.Params["query"] != "TX-100" || !last.FetchedAt.Equal(at) || last.Raw.SHA256 != ref.SHA256 {
+		t.Errorf("reparsed 봉투 = %+v", last)
+	}
+	if got.Layout != danawa.LayoutFlight || len(got.Catalog) != 2 {
+		t.Errorf("body layout=%q catalog=%d", got.Layout, len(got.Catalog))
+	}
+	if string(envs[0].Body) != string(old) {
+		t.Errorf("원래 봉투가 바뀌었다: %s", envs[0].Body)
 	}
 }

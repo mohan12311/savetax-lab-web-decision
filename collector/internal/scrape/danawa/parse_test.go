@@ -41,8 +41,8 @@ func TestParseSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.ListFound {
-		t.Error("list_found=false")
+	if !r.ListFound || r.Layout != LayoutHTML {
+		t.Errorf("list_found=%v layout=%q", r.ListFound, r.Layout)
 	}
 	if len(r.Catalog) != 2 || len(r.Listings) != 1 {
 		t.Fatalf("catalog=%d listings=%d (광고 영역은 빠져야 한다)", len(r.Catalog), len(r.Listings))
@@ -192,5 +192,65 @@ func TestPaths(t *testing.T) {
 	}
 	if !ValidPCode("19211177") || ValidPCode("1001&x=1") || ValidPCode("") {
 		t.Error("ValidPCode")
+	}
+}
+
+func TestParseSearchFlight(t *testing.T) {
+	r, err := ParseSearch(fixture(t, "search_flight.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.ListFound || r.Layout != LayoutFlight {
+		t.Fatalf("list_found=%v layout=%q", r.ListFound, r.Layout)
+	}
+	if r.SearchedKeyword != "TX-100 본체" {
+		t.Errorf("searched_keyword=%q (다나와가 고친 검색어)", r.SearchedKeyword)
+	}
+	// 숫자 아닌 pcode는 가격비교 상품으로 받지 않는다(adLeader 등 다른 쿼리도 무시)
+	if len(r.Catalog) != 2 || len(r.Listings) != 2 {
+		t.Fatalf("catalog=%d listings=%d", len(r.Catalog), len(r.Listings))
+	}
+	c := r.Catalog[0]
+	if c.Order != 1 || c.PCode != "1001" || c.Name != "가상전자 TX-100 본체 & 받침" || c.Maker != "가상전자" || c.Category != "가전_테스트기기" {
+		t.Errorf("catalog[0] = %+v", c)
+	}
+	if c.Spec != "테스트기기 / 100W / 무게:2kg" || c.URL != ProductURL("1001") || c.Status != "" {
+		t.Errorf("spec=%q url=%q status=%q", c.Spec, c.URL, c.Status)
+	}
+	eq(t, "catalog[0].min_price", c.MinPriceKRW, 1500000)
+	if len(c.Variants) != 3 || c.Variants[1].Label != "중고품" || c.Variants[2].Status != "단종" {
+		t.Fatalf("variants = %+v", c.Variants)
+	}
+	eq(t, "variants[1].price(문자열 숫자)", c.Variants[1].PriceKRW, 1400000)
+	isNil(t, "variants[2].price(단종 0원)", c.Variants[2].PriceKRW)
+	d := r.Catalog[1]
+	if d.Order != 3 || d.Status != "단종" || d.Spec != "" || len(d.Variants) != 0 {
+		t.Errorf("catalog[1] = %+v", d)
+	}
+	isNil(t, "catalog[1].min_price(단종 0원)", d.MinPriceKRW)
+	l := r.Listings[0]
+	if l.Order != 2 || l.ID != "MALL1_778899" || l.Mall != "가상몰" || l.Name != "[해외] TX-100 호환 커버" {
+		t.Errorf("listing[0] = %+v", l)
+	}
+	eq(t, "listing[0].price", l.PriceKRW, 9900)
+	eq(t, "listing[0].shipping(무료배송)", l.ShippingKRW, 0)
+	eq(t, "listing[1].shipping", r.Listings[1].ShippingKRW, 3000)
+}
+
+func TestParseSearchFlightEmptyAndUnknown(t *testing.T) {
+	r, err := ParseSearch(fixture(t, "search_flight_empty.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 목록 쿼리는 있는데 상품이 없다 = 다나와 검색 결과 없음(구조 변경과 구분)
+	if !r.ListFound || r.Layout != LayoutFlight || len(r.Catalog) != 0 || r.SearchedKeyword != "" {
+		t.Errorf("empty: %+v", r)
+	}
+	r, err = ParseSearch([]byte(`<html><head><meta charset="utf-8"></head><body><div class="dnw-x">x</div></body></html>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.ListFound || r.Layout != "" {
+		t.Errorf("unknown: list_found=%v layout=%q (모르는 구조는 list_found=false)", r.ListFound, r.Layout)
 	}
 }

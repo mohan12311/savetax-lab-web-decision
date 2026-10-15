@@ -46,11 +46,15 @@ func runScrape(ctx context.Context, a *app, args []string) error {
 	from := fs.String("from", "", "검색어 목록 파일(한 줄에 하나, #으로 시작하면 주석)")
 	top := fs.Int("top", 3, "검색어마다 상품 페이지를 받을 가격비교 상품 수(0이면 검색만)")
 	refresh := fs.Bool("refresh", false, "이미 끝난 작업도 다시 받는다")
+	reparse := fs.Bool("reparse", false, "보관한 검색 원문을 지금 파서로 다시 추출한다(다나와에 요청하지 않는다)")
 	if err := fs.Parse(args); err != nil {
 		return usageError{err.Error()}
 	}
 	if *source != "danawa" {
 		return usageError{fmt.Sprintf("지원하지 않는 소스: %q (현재 danawa만)", *source)}
+	}
+	if *reparse {
+		return reparseSearch(a.bronzeRoot(), args, os.Stdout)
 	}
 	if *top < 0 {
 		return usageError{"--top은 0 이상"}
@@ -255,8 +259,11 @@ func (s *scraper) search(ctx context.Context, q string) error {
 		return err
 	}
 	if !res.ListFound {
-		fmt.Fprintln(s.out, "  결과 없음(목록 영역 없음 — 검색 결과가 없거나 페이지 구조가 바뀌었다)")
+		fmt.Fprintln(s.out, "  목록을 못 찾음 — 페이지 구조가 바뀌었을 수 있다(원문은 보관, 파서를 고친 뒤 --reparse)")
 		return nil
+	}
+	if res.SearchedKeyword != "" {
+		fmt.Fprintf(s.out, "  다나와가 고친 검색어: %q\n", res.SearchedKeyword)
 	}
 	fmt.Fprintf(s.out, "  가격비교 상품 %d개 · 쇼핑몰 개별 상품 %d개(탐색 참고용)\n", len(res.Catalog), len(res.Listings))
 	var next []state.Task

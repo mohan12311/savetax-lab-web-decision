@@ -80,3 +80,24 @@ def test_tier_c_compares_same_pack_size_only(make_bronze, tmp_path):
     assert (big["pack_key"], big["tier"], big["cat_n"]) == ("1000.0000kg", None, 11)
     assert big["x_median"] < 2
     assert got["80000300"]["pack_key"] == "0.5000kg"
+
+
+def test_retail_scope_lists_it_items_and_strips_origin_prefix(make_bronze, tmp_path):
+    def tier_a(n, dcc, model):
+        item = f"8000000{n}"
+        return [listing(listing_id=f"80000000{n}_1000000001", item_id=item, detail_category_code=dcc, model=model,
+                        price=Decimal("2000000"), **dlv(n, 200_000_000, qty=100)),
+                listing(listing_id=f"80000000{n}_1000000002", item_id=item, detail_category_code=dcc, model=model,
+                        price=Decimal("1000000"))]
+    rows = (tier_a(1, "4321150101", "(JP)EOS R1") + tier_a(2, "4521160101", "EOS R1")  # 같은 검색어는 한 번
+            + tier_a(3, "4323150101", "SW-1000")  # 소프트웨어는 뺀다
+            + tier_a(4, "3010150101", "BLK-100")  # IT·사무·AV·가전 밖
+            + tier_a(5, "5213150101", "TV-5000"))  # 이미 선점
+    lookups = [lookup_envelope([("80000005", "claimed"), ("80000001", "available")])]
+    m, got, _ = build(make_bronze, tmp_path, rows, lookups)
+    assert got["80000001"]["retail_query"] == "EOS R1"
+    gold = tmp_path / "gold"
+    lines = lambda f: [l for l in (gold / f).read_text().splitlines() if not l.startswith("#")]
+    assert sorted(lines("retail_ids.txt")) == ["80000001", "80000002"]
+    assert lines("scrape_queries.txt") == ["EOS R1"]
+    assert m["summary"]["retail"] == {"items": 2, "queries": 1}

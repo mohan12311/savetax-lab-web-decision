@@ -19,9 +19,17 @@ import (
 // SearchResult는 통합검색 결과 한 페이지다.
 type SearchResult struct {
 	ListFound bool          `json:"list_found"` // 상품 목록 영역이 있었는가(false면 결과 없음 또는 구조 변경)
+	Layout    string        `json:"layout"`     // 어느 구조로 읽었나: LayoutHTML(옛 목록 태그)·LayoutFlight(Next.js 앱 데이터)
 	Catalog   []CatalogItem `json:"catalog"`    // 가격비교 상품(pcode) — 근거 페이지 후보
 	Listings  []Listing     `json:"listings"`   // 오픈마켓 개별 상품 — 탐색 참고용(근거 페이지로 쓰지 않는다)
+	// SearchedKeyword는 다나와가 검색어를 고쳐 찾은 경우의 실제 검색어다(예: "15x3.5inch Drive DAE" → "15x3.5inch Drive").
+	SearchedKeyword string `json:"searched_keyword,omitempty"`
 }
+
+const (
+	LayoutHTML   = "html_list"
+	LayoutFlight = "next_flight"
+)
 
 // CatalogItem은 다나와가 묶은 가격비교 상품이다. Variants는 같은 상품의 용량·크기 등 하위 상품(각자 pcode)이다.
 type CatalogItem struct {
@@ -32,6 +40,7 @@ type CatalogItem struct {
 	Category    string    `json:"category,omitempty"`
 	Spec        string    `json:"spec,omitempty"`
 	MinPriceKRW *int64    `json:"min_price_krw"`
+	Status      string    `json:"status,omitempty"` // 가격 대신 적힌 상태(예: 단종)
 	URL         string    `json:"url"`
 	Variants    []Variant `json:"variants,omitempty"`
 }
@@ -168,13 +177,20 @@ func pcodeOf(href string) string {
 }
 
 // ParseSearch는 search.danawa.com/dsearch.php 결과를 읽는다. 광고 영역(adSmartArea…)은 건너뛴다.
+// 옛 목록 태그(ul.product_list)가 없으면 Next.js 앱 데이터(flight.go)로 읽는다.
 func ParseSearch(html []byte) (*SearchResult, error) {
 	doc, err := load(html)
 	if err != nil {
 		return nil, err
 	}
-	res := &SearchResult{Catalog: []CatalogItem{}, Listings: []Listing{}}
+	res := &SearchResult{Layout: LayoutHTML, Catalog: []CatalogItem{}, Listings: []Listing{}}
 	list := doc.Find("ul.product_list").First()
+	if list.Length() == 0 {
+		if fr, ok := parseSearchFlight(html); ok {
+			return fr, nil
+		}
+		res.Layout = ""
+	}
 	res.ListFound = list.Length() > 0
 	list.Find("li.prod_item").Each(func(_ int, li *goquery.Selection) {
 		id, _ := li.Attr("id")

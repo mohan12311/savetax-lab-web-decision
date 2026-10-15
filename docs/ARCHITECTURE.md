@@ -112,6 +112,8 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 - 쓰지 않는 경로: `/bridge/`(쇼핑몰 이동 링크), `/info/ajax/`(전체 판매처 목록) — robots Disallow. 쇼핑몰 개별 상품은 근거 페이지로 쓰지 않는다(이동 링크가 bridge이고, 오픈마켓 페이지는 근거 검사가 못 읽는다).
 - 약관: 자동 수집 명시 금지 조항은 없지만 "무단 복제·가공 금지"(콘텐츠산업 진흥법)라 저속으로만 받고, 원문은 `data/`(gitignore)에만 둔다. 테스트 픽스처는 구조만 흉내 낸 합성 HTML이다.
 - 근거로 쓸 때: 상품 페이지 URL이 근거 후보이고, quote·관측가는 보관 원문에서 다시 확인한다(6절 게이트 5). 다른 쇼핑몰·제조사 페이지가 필요해지면 같은 `Site`로 소스를 더한다.
+- 검색 페이지 구조 변경(2026-10-15 확인): 통합검색이 Next.js 앱이 되어 `ul.product_list`가 없다. 목록은 응답 HTML 안 `self.__next_f.push([1,"…"])` 조각의 react-query 상태(queryKey `["search","productList",…]`)에 JSON으로 실린다. `prodType` 1 = 가격비교 상품(숫자 pcode), 3 = 쇼핑몰 개별 상품. 파서는 옛 목록 → 새 앱 데이터 순서로 읽고 `layout`(`html_list`·`next_flight`)을 남긴다. 다나와가 검색어를 고치면 `searched_keyword`에 남긴다. 하위 상품에 `중고품`이 섞이므로 시중가 비교에서 뺀다. 상품 페이지(`/info/`)는 바뀌지 않았다.
+- 파서를 고친 뒤에는 다시 받지 않고 `make scrape ARGS='--reparse'`로 보관 원문을 다시 추출한다(sha256 확인, 원래 봉투는 두고 `params.reparsed=true` 봉투를 덧붙임 — 읽는 쪽은 같은 원문의 나중 봉투를 쓴다).
 
 ## 4. Python pipeline (전처리·분석)
 
@@ -164,6 +166,8 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 
 - 정렬: 티어 있는 것 먼저, 추정 잠재액순. `make candidates`는 티어별 상위 10을 따로 보여 준다(티어끼리 같은 눈금이 아니다).
 - `lookup_ids.txt`: 티어가 있거나 납품 1억 원 이상, 이미 `claimed`·`reform_found`·`not_found`로 확인된 것 제외. 흐름은 `make candidates → make lookup → make silver → make candidates`.
+- 시중가 범위(`retail_ids.txt`·`scrape_queries.txt`): 티어가 있고 `available`이거나 미확인인 물품 중 물품분류번호 앞 2자리 43(IT)·44(사무기기)·45(AV·사진)·52(가전), 소프트웨어(4323) 제외. 검색어 `retail_query`는 모델명에서 원산지 접두어(`(JP)` 등)만 뗀 값이고 같은 검색어는 한 번만 둔다. 이 범위만 다시 확인하려면 `make lookup IDS=retail_ids`, 다나와는 `make scrape ARGS='--from <절대경로>/data/gold/scrape_queries.txt --top 0'`(검색만 받고, 모델이 맞는 상품만 `--pcode`로 상품 페이지를 받는다). 10/15 182개 물품·검색어 176개.
+- 10/15 시중가 범위 대조 결과: **gap 기준 통과 0개**. 다나와 가격비교 상품과 모델이 맞은 물품은 모두 조달가가 시중가와 비슷하거나 더 쌌다(EOS R1 1.03배, HC-X1600 0.96, XA65 0.92, 100QNED86BK 0.84, DR-1400K 0.80). 쇼핑몰 개별 상품으로 본 같은 제품도 0.48~0.92배였다. 내부 배수가 컸던 나머지는 시장에 같은 모델이 없는 조달 전용 장비(141개는 가격비교 상품 0개)였다. 모델명 부분 일치는 액세서리(EOS R1용 필름·케이지)나 다른 제품(망전환장치 G610 ↔ 모니터 27G610A)을 잘못 잡으므로, 가격비교 상품은 분류·이름을 사람이 확인한다.
 - 내부 기준가만으로는 거짓 양성이 많다(10/14 확인: Windows Server 2025 2코어 티어 B는 조달 154,000원 < 시중 199,000원, EOS R1 티어 C는 조달 830만 원 대 시중 808만 원으로 1.03배). 그래서 시중가(다나와 등 정적 페이지)로 gap 기준을 다시 재는 단계가 필수다.
 - 다음 단계: 시중가 근거 가능성(정적 판매 페이지가 있는 품목인가)을 점수에 넣고, 대회 fact로 C·Q·P를 확정해 다시 계산한다(M4).
 

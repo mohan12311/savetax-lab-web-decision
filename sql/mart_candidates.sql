@@ -127,6 +127,8 @@ SELECT
   cs.state AS claim_state,
   cs.checked_at AS claim_checked_at,
   i.name, i.detail_category, i.detail_category_code, i.manufacturer, i.model, i.source,
+  -- 시중 검색어: 모델명에서 원산지 접두어((JP)·(CN) 등)만 뗀다. 하이픈 등은 판매 페이지 상품명에 그대로 있어 남긴다
+  nullif(trim(regexp_replace(coalesce(i.model, ''), '^\s*\([A-Za-z]{2}\)\s*', '')), '') AS retail_query,
   t.unit_norm,
   t.pack_key,
   t.c_est,

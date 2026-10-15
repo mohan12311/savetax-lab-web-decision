@@ -28,15 +28,23 @@ LOOKUP_MIN_C = 100_000_000  # 티어가 없어도 납품 1억 원 이상이면 �
 STICKY_STATES = ("claimed", "reform_found", "not_found")  # 다시 묻지 않는다(철회는 watch가 잡는다)
 SILVER_TABLES = ("listings", "dlv_keys", "items", "claim_state")
 TOP_PER_TIER = 10
-# 시중가(다나와 등 정적 판매 페이지)를 잴 범위: 물품분류번호 앞 2자리. 기본은 지금 보는 범위이고 --retail-segments로 바꾼다.
-#   10/15 IT(43)·사무기기(44)·AV·사진(45)·가전(52) 시험 → gap 통과 0이라 접었다(재현: --retail-segments 43,44,45,52)
-#   지금: 상업용 주방기기(48)·가구(56)
+# 시중가(다나와 등 정적 판매 페이지)를 잴 범위: 물품분류번호 앞 2자리(--retail-segments로 바꾼다).
+# 기본은 IT(43)·사무기기(44)·AV·사진(45)·가전(52). 10/15 선점 분포를 보니 시장과 같은 모델 코드를 쓰는
+# 이 분야(HDD·스위치·프로젝터·모니터·PC 등)에 선점이 가장 몰려 있었다. 상업용 주방기기(48)·가구(56)는
+# 다나와에 같은 제품이 없어 뺐다(재현: --retail-segments 48,56).
 # 소프트웨어(4323)는 라이선스 조건(채널·에디션)이 갈려 판매 페이지 단가와 바로 비교하기 어려워 뺀다.
-RETAIL_SEGMENTS = ("48", "56")
+RETAIL_SEGMENTS = ("43", "44", "45", "52")
 RETAIL_EXCLUDE_FAMILIES = ("4323",)
-# 티어가 없어도(조달 안에서 가격이 고르게 비싸면 내부 기준가에 안 잡힌다) 납품이 이만큼이고 모델명이 있으면 넣는다.
-# 모델명 기준은 티어 B와 같다(영숫자 5자 이상, 영문·숫자 모두 포함).
-RETAIL_MIN_C = 500_000_000
+# 티어가 없어도(조달 안에서 가격이 고르게 비싸면 내부 기준가에 안 잡힌다) 납품이 이만큼이고 모델명(영숫자 4자 이상)이
+# 있으면 넣는다. 선점된 물품 대부분이 티어 없는 물품이었다(데스크톱 293개 중 292개).
+RETAIL_MIN_C = 100_000_000
+# 분류 밖이라도 납품 1억 원 이상 물품 중 선점 비율이 이만큼 높은 제조사의 물품은 넣는다(시장 코드·gap 신호).
+# 그런 제조사는 1억 이상이 거의 다 선점돼 있어(엡손 23/28, Seagate 33/33) 납품 HOT_MAKER_MIN_C까지 내려간다.
+# 선점률은 1억 이상 구간에서만 센다 — 소액 물품을 lookup하면 비율이 희석된다.
+# 선점 상태는 탐색 방향을 고르는 데만 쓴다 — 남의 근거는 보지 않는다(CLAUDE.md 규칙 2).
+HOT_MAKER_MIN_N = 4
+HOT_MAKER_MIN_RATE = 0.5
+HOT_MAKER_MIN_C = 10_000_000
 
 
 def build_candidates(silver: Path, gold: Path, retail_segments: tuple[str, ...] = RETAIL_SEGMENTS) -> dict[str, Any]:
@@ -69,26 +77,35 @@ def build_candidates(silver: Path, gold: Path, retail_segments: tuple[str, ...] 
     lookup_text = (f"# gold candidates {started.isoformat()} — 티어가 있거나 납품 {LOOKUP_MIN_C:,}원 이상, "
                    f"{'·'.join(STICKY_STATES)} 제외\n" + "".join(i + "\n" for i in ids))
 
-    # 시중가 범위: 아직 등록 가능하거나 미확인인 물품 중 티어가 있거나, 납품이 크고 모델명이 쓸 만한 것.
-    # 같은 검색어는 한 번만, 티어 있는 것(잠재액순) 다음 납품액순.
+    # 시중가 범위: 아직 등록 가능하거나 미확인인 물품 중 (분류 안이거나 선점이 잘 되는 제조사)이고
+    # (티어가 있거나 납품이 크고 모델명이 쓸 만한) 것. 같은 검색어는 한 번만, 선점 잘 되는 제조사 먼저, 그다음 납품액순.
     segs = ", ".join(lit(s) for s in retail_segments)
     fams = ", ".join(lit(f) for f in RETAIL_EXCLUDE_FAMILIES)
     con.execute(f"""
+        CREATE TEMP TABLE maker_claims AS
+        SELECT manufacturer, count(*) AS n, avg((claim_state IN ('claimed', 'reform_found'))::INT) AS rate
+        FROM candidates WHERE claim_state IS NOT NULL AND claim_state <> 'not_found' AND manufacturer IS NOT NULL
+          AND c_est >= {RETAIL_MIN_C}
+        GROUP BY manufacturer""")
+    con.execute(f"""
         CREATE TEMP TABLE retail AS
-        SELECT item_id, retail_query, u_est, c_est, tier IS NOT NULL AS tiered FROM candidates
-        WHERE (claim_state IS NULL OR claim_state = 'available')
-          AND left(detail_category_code, 2) IN ({segs}) AND left(detail_category_code, 4) NOT IN ({fams})
-          AND retail_query IS NOT NULL
-          AND (tier IS NOT NULL OR (c_est >= {RETAIL_MIN_C}
-               AND length(regexp_replace(upper(retail_query), '[^0-9A-Z]', '', 'g')) >= 5
-               AND regexp_matches(upper(retail_query), '[0-9]') AND regexp_matches(upper(retail_query), '[A-Z]')))""")
-    order = "bool_or(tiered) DESC, max(u_est) DESC NULLS LAST, max(c_est) DESC"
+        SELECT c.item_id, c.retail_query, c.u_est, c.c_est,
+               coalesce(m.n >= {HOT_MAKER_MIN_N} AND m.rate >= {HOT_MAKER_MIN_RATE}, false) AS hot_maker
+        FROM candidates c LEFT JOIN maker_claims m USING (manufacturer)
+        WHERE (c.claim_state IS NULL OR c.claim_state = 'available')
+          AND left(c.detail_category_code, 4) NOT IN ({fams})
+          AND c.retail_query IS NOT NULL
+          AND length(regexp_replace(upper(c.retail_query), '[^0-9A-Z]', '', 'g')) >= 4
+          AND ((left(c.detail_category_code, 2) IN ({segs}) AND (c.tier IS NOT NULL OR c.c_est >= {RETAIL_MIN_C}))
+               OR (m.n >= {HOT_MAKER_MIN_N} AND m.rate >= {HOT_MAKER_MIN_RATE} AND c.c_est >= {HOT_MAKER_MIN_C}))""")
+    order = "bool_or(hot_maker) DESC, max(c_est) DESC"
     retail_ids = [r[0] for r in con.execute(f"""
         SELECT item_id FROM retail GROUP BY item_id ORDER BY {order}, item_id""").fetchall()]
     queries = [r[0] for r in con.execute(f"""
         SELECT retail_query FROM retail GROUP BY retail_query ORDER BY {order}, retail_query""").fetchall()]
-    scope_note = (f"available 또는 미확인·분류 {'/'.join(retail_segments)}(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)})"
-                  f"·티어 있음 또는 납품 {RETAIL_MIN_C:,}원 이상이고 모델명 있음")
+    scope_note = (f"available 또는 미확인·분류 {'/'.join(retail_segments)}(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)}) "
+                  f"·티어 있음 또는 납품 {RETAIL_MIN_C:,}원 이상, 또는 선점 {HOT_MAKER_MIN_RATE:.0%} 이상 제조사·납품 {HOT_MAKER_MIN_C:,}원 이상"
+                  f"·모델명 4자 이상")
     retail_ids_text = f"# 시중가 범위 물품 {started.isoformat()} — {scope_note}\n" + "".join(i + "\n" for i in retail_ids)
     queries_text = f"# 시중가 검색어 {started.isoformat()} — {scope_note}\n" + "".join(q + "\n" for q in queries)
 
@@ -101,7 +118,7 @@ def build_candidates(silver: Path, gold: Path, retail_segments: tuple[str, ...] 
             GROUP BY 1 ORDER BY 2 DESC, 1""").fetchall()),
         "lookup_ids": len(ids),
         "retail": {"items": len(retail_ids), "queries": len(queries),
-                   "untiered": con.execute("SELECT count(*) FROM retail WHERE NOT tiered").fetchone()[0]},
+                   "hot_maker": con.execute("SELECT count(*) FROM retail WHERE hot_maker").fetchone()[0]},
         # 경쟁 지도: 선점 판단에만 쓴다(프로젝트 규칙 2). 미확인은 아직 lookup하지 않은 물품
         "claims_by_tier": _claims_by(con, "coalesce(tier, '-')"),
         "claims_by_band": _claims_by(con, """CASE
@@ -127,7 +144,8 @@ def build_candidates(silver: Path, gold: Path, retail_segments: tuple[str, ...] 
             "params": {"min_u": MIN_U, "min_c_cat": MIN_C_CAT, "min_x_cat": MIN_X_CAT,
                        "lookup_min_c": LOOKUP_MIN_C, "sticky_states": list(STICKY_STATES),
                        "retail_segments": list(retail_segments), "retail_exclude_families": list(RETAIL_EXCLUDE_FAMILIES),
-                       "retail_min_c": RETAIL_MIN_C},
+                       "retail_min_c": RETAIL_MIN_C, "hot_maker_min_n": HOT_MAKER_MIN_N,
+                       "hot_maker_min_rate": HOT_MAKER_MIN_RATE, "hot_maker_min_c": HOT_MAKER_MIN_C},
             "tables": tables,
             "checks": [c.as_dict() for c in results + out_checks],
             "summary": summary,
@@ -194,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     for b, d in s["claims_by_band"].items():
         print(_claim_line(b[3:], d))
     print(f"  lookup 대상: {s['lookup_ids']:,}개 → data/gold/lookup_ids.txt (make lookup)")
-    print(f"  시중가 범위: {s['retail']['items']:,}개 물품(티어 없음 {s['retail']['untiered']:,}) → data/gold/retail_ids.txt (make lookup IDS=retail_ids), "
+    print(f"  시중가 범위: {s['retail']['items']:,}개 물품(선점 잘 되는 제조사 {s['retail']['hot_maker']:,}) → data/gold/retail_ids.txt (make lookup IDS=retail_ids), "
           f"검색어 {s['retail']['queries']:,}개 → data/gold/scrape_queries.txt")
     if m["top"]:
         print(f"\n  티어별 상위 {TOP_PER_TIER} (선점 안 됐거나 미확인, 추정 잠재액순 — 조달 내부 기준가 기준이며 시중가 아님)")

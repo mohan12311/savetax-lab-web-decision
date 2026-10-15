@@ -89,25 +89,35 @@ def test_retail_scope_lists_it_items_and_strips_origin_prefix(make_bronze, tmp_p
                         price=Decimal("2000000"), **dlv(n, 200_000_000, qty=100)),
                 listing(listing_id=f"80000000{n}_1000000002", item_id=item, detail_category_code=dcc, model=model,
                         price=Decimal("1000000"))]
+
+    def single(item, n, dcc, model, amount, maker="테스트제조"):
+        return listing(listing_id=f"8{item[1:]}_1000000001", item_id=item, detail_category_code=dcc, model=model,
+                       manufacturer=maker, price=Decimal("3000000"), **dlv(n, amount, qty=amount // 3_000_000))
+
     rows = (tier_a(1, "4321150101", "(JP)EOS R1") + tier_a(2, "4521160101", "EOS R1")  # 같은 검색어는 한 번
             + tier_a(3, "4323150101", "SW-1000")  # 소프트웨어는 뺀다
             + tier_a(4, "3010150101", "BLK-100")  # IT·사무·AV·가전 밖
             + tier_a(5, "5213150101", "TV-5000")  # 이미 선점
-            # 티어 없음(같은 값 등재 하나): 납품 5억 이상이고 모델명이 쓸 만하면 넣고, 아니면 뺀다
-            + [listing(listing_id="800000006_1000000001", item_id="80000006", detail_category_code="4321150101",
-                       model="(CN)MON-2700Q", price=Decimal("3000000"), **dlv(6, 600_000_000, qty=200)),
-               listing(listing_id="800000007_1000000001", item_id="80000007", detail_category_code="4321150101",
-                       model="X1", price=Decimal("3000000"), **dlv(7, 600_000_000, qty=200)),
-               listing(listing_id="800000008_1000000001", item_id="80000008", detail_category_code="4321150101",
-                       model="MON-2400F", price=Decimal("3000000"), **dlv(8, 300_000_000, qty=100))])
-    lookups = [lookup_envelope([("80000005", "claimed"), ("80000001", "available")])]
+            # 티어 없음: 납품 1억 이상이고 모델명이 4자 이상이면 넣는다
+            + [single("80000006", 6, "4321150101", "(CN)MON-2700Q", 600_000_000),
+               single("80000007", 7, "4321150101", "X1", 600_000_000),  # 모델명이 짧다
+               single("80000008", 8, "4321150101", "MON-2400F", 300_000_000),
+               single("80000013", 13, "4321150101", "MON-1900", 60_000_000)]  # 납품 1억 미만
+            # 분류 밖이라도 선점 비율이 높은 제조사(확인 4개 중 3개 선점)의 남은 물품은 넣는다
+            + [single(str(80_000_000 + i), i, "3010150101", f"HOT-{i}00", 150_000_000, maker="핫제조") for i in (9, 10, 11, 12)]
+            # 그 제조사의 소액 물품(1천만 이상)도 넣는다. 소액 물품의 lookup 결과는 제조사 선점률을 희석하지 않는다
+            + [single(str(80_000_000 + i), i, "3010150101", f"HOT-{i}00", 30_000_000, maker="핫제조") for i in (14, 15, 16)]
+            + [single("80000017", 17, "3010150101", "HOT-1700", 6_000_000, maker="핫제조")])  # 1천만 미만
+    lookups = [lookup_envelope([("80000005", "claimed"), ("80000001", "available"), ("80000009", "claimed"),
+                                ("80000010", "claimed"), ("80000011", "claimed"), ("80000012", "available"),
+                                ("80000014", "available"), ("80000015", "available"), ("80000016", "available")])]
     m, got, _ = build(make_bronze, tmp_path, rows, lookups, retail_segments=("43", "44", "45", "52"))
     assert got["80000001"]["retail_query"] == "EOS R1"
     assert got["80000006"]["tier"] is None
     gold = tmp_path / "gold"
     lines = lambda f: [l for l in (gold / f).read_text().splitlines() if not l.startswith("#")]
-    # 티어 있는 것이 먼저, 그다음 티어 없는 것(납품액순)
-    assert sorted(lines("retail_ids.txt")[:2]) == ["80000001", "80000002"]
-    assert lines("retail_ids.txt")[2:] == ["80000006"]
-    assert lines("scrape_queries.txt") == ["EOS R1", "MON-2700Q"]
-    assert m["summary"]["retail"] == {"items": 3, "queries": 2, "untiered": 1}
+    # 선점 잘 되는 제조사 먼저, 그다음 납품액순
+    assert lines("retail_ids.txt") == ["80000012", "80000014", "80000015", "80000016",
+                                       "80000006", "80000008", "80000001", "80000002"]
+    assert lines("scrape_queries.txt") == ["HOT-1200", "HOT-1400", "HOT-1500", "HOT-1600", "MON-2700Q", "MON-2400F", "EOS R1"]
+    assert m["summary"]["retail"] == {"items": 8, "queries": 7, "hot_maker": 4}

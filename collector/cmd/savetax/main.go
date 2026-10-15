@@ -33,11 +33,11 @@ var commands = []command{
 	{"dataset", "데이터셋 zip 다운로드 → SHA256 검증 → data/bronze/dataset/<ver>/", runDataset},
 	{"crawl", "(M4) 후보 큐 기반 listings/items/deliveries 수집", notYet("M4")},
 	{"lookup", "물품번호 목록의 선점 상태를 items/lookup으로 100개씩 조회 → data/bronze/contest/lookup/", runLookup},
-	{"facts", "(M4) items/{item_id} facts 수집", notYet("M4")},
+	{"facts", "지정한 물품의 items/{item_id}(스냅샷·납품 fact) → data/bronze/contest/items/, 가격 차이 기준 계산(--draft 본문 초안)", runFacts},
 	{"watch", "(M6) SSE 피드 감시", notYet("M6")},
 	{"scrape", "다나와 검색·상품 페이지 수집 → data/bronze/retail/danawa/ (원문 HTML + 추출)", runScrape},
 	{"probe", "시중 판매 페이지가 정적 HTML로 읽히는지(본문에 상품명·가격) 판정 → data/bronze/retail/probe/", runProbe},
-	{"submit", "(M6) preview → submit --confirm", notYet("M6")},
+	{"submit", "본문 게이트 검사 → preview(dry-run). --confirm일 때만 제출, --status <key>로 접수·lint 확인", runSubmit},
 }
 
 type usageError struct{ msg string }

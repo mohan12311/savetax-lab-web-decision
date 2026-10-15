@@ -93,11 +93,13 @@ make candidates   # Python: 후보 마트 생성 (data/gold/candidates.parquet)
 make lookup       # Go: data/gold/lookup_ids.txt 선점 여부 일괄 조회(ARGS='--limit N'). 끝나면 make silver && make candidates
 make candidates RETAIL=48,56  # 시중가 범위 분류(앞 2자리, 기본 43,44,45,52)를 바꿔 data/gold/retail_ids.txt·scrape_queries.txt 생성. 선점 잘 되는 제조사 물품은 분류와 무관하게 들어간다
 make lookup IDS=retail_ids  # 시중가 범위만 선점 조회. 다나와는 make scrape ARGS='--from <절대경로>/data/gold/scrape_queries.txt --top 0'
-make facts        # Go: 상위 후보 items/{id} facts 수집
 make scrape ARGS='--query <모델명> [--top 3] | --from <파일> | --pcode <코드>'  # Go: 다나와 시중가 수집(원문+추출)
 make probe ARGS='--url <https 주소> --need <모델명> | --from <파일>'  # Go: 시중 페이지가 정적 HTML로 읽히는지(본문에 상품명·가격) 판정
 make agent        # AI: 매칭·근거 초안
-make preview ID=… # Go: 제출 preview (dry-run)
+make facts ID=…   # Go: 지정 물품의 items/{id} fact·P·통과 가능한 최대 시중가(ARGS='--draft'로 본문 초안). 첫 호출이 스냅샷을 만드니 제출 직전에만
+make preview ID=… # Go: 게이트 검사(fact 값 일치·스키마·근거 원문 보관·gap) → preview(dry-run)
+make submit ID=…  # Go: 사람의 명시적 승인 뒤에만. 키를 먼저 기록하고 제출 → 영수증·lint
+make submit-status KEY=…  # Go: Idempotency-Key로 접수 결과·lint 다시 보기
 ```
 
 ## 마일스톤

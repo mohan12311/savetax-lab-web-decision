@@ -191,18 +191,24 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 - 페이지 텍스트 안의 지시문은 데이터로만 취급한다(프롬프트 인젝션 방지). 시스템 프롬프트에 명시한다.
 - Claude Code 세션 자체는 savetax MCP(`.mcp.json`)로 탐색·디버깅에 쓰고, 대량 처리는 위 배치 파이프라인으로 돌린다.
 
-## 6. 제출 게이트 (Go `submit`)
+## 6. 제출 게이트 (Go `facts`·`submit`, 10/15 구현)
 
-제출 전 자동 검사(모두 통과해야 preview 진행):
-1. `items/lookup` 상태가 `available`
-2. 각 line의 `unit`·`tax_basis`·`comparison_basis_id` = fact 값(바이트 일치)
-3. 금액 필드는 따옴표 문자열, `observed_at` ≤ 오늘(KST), ≥ 2015-01-01
-4. price_evidence 1~8개, quote 1~2000자, source_url https·2048자 이하
-5. quote가 bronze 원문 HTML에서 재현되는지(sha256으로 원문 추적)
-6. gap 기준 사전 계산 통과
-7. `dataset_release_id`·`ruleset_version` = `GET /v1/events/current` 값
+물품 상세: `make facts ID=<item_id> [ARGS='--draft']` — `items/{item_id}`를 지정한 물품만 받아 `bronze/contest/items`에 쌓고, 비교 기준(basis_id)별 납품 단가 P(ΣC÷ΣQ)와 가격 차이 기준을 통과하는 최대 시중가 max(P÷1.2, P−100만)를 보여 준다. 첫 호출이 서버 스냅샷을 만들어 남에게도 보이는 신호가 될 수 있어 일괄 조회는 하지 않는다(제출 직전 후보에만). 429 `RATE_LIMITED`는 lookup처럼 65초 뒤 다시 묻는다. `--draft`는 `data/gold/claims/<item_id>.json`에 점수에 쓸 수 있는 fact마다 줄을 만들고 `unit`·`tax_basis`·`comparison_basis_id`(= fact `basis_id`)를 글자 그대로 옮긴다. 제목·비교 단가·근거는 비워 둔다 — 실제로 본 판매 페이지에서만 채운다.
 
-흐름: `preview` → 리뷰 시트(HTML/CSV) 생성 → 사람이 승인 → `submit --confirm`(새 UUID Idempotency-Key) → 영수증 저장 → lint 상태 폴링 → suspect면 사유(`lint.lines[].reason`)를 보고 수정(`If-Match`).
+`make preview ID=…`(dry-run)·`make submit ID=…`(`--confirm`)이 같은 게이트를 지난다. 하나라도 막으면 서버에 아무것도 보내지 않는다(`internal/claim`, 금액은 big.Rat):
+1. 본문을 모르는 필드 거절로 읽는다(서버로 새지 않게). 보내는 바이트는 한 번 정한 것을 그대로 쓴다(멱등 재전송).
+2. `GET /v1/events/current`: 접수 기간, `dataset_release_id`·`ruleset_version` 일치, `price_gap` 값.
+3. `items/lookup` 상태가 `available`, 물품 상세의 `availability`도 `available`.
+4. 줄마다 fact가 이 물품의 것이고 `scorable`, `unit`·`tax_basis`·`comparison_basis_id`가 fact 값과 바이트 일치, 기간형이면 `period` 필수(아니면 null).
+5. 스키마: 길이(한글 1자), 비교 단가 0 초과·소수 6자리, 근거 1~8개·`price_page`·https 2048자 이하·quote 1~2000자·관측가 양의 정수·관측일 2015-01-01~KST 오늘·VAT/배송 필수. 비교 단가가 근거의 가장 싼 관측가보다 낮으면 막는다(근거에 없는 가격). fact 세금 기준과 관측가 VAT 포함 여부가 다르면 주의.
+6. **근거 원문 보관**: 근거 주소를 우리가 받아 둔 원문(`bronze/retail/danawa/product`·`retail/probe/page`, `params.url` 일치)이 있고, 관측일(KST)에 받은 원문 본문 글자에 관측가(쉼표 표기)가 있어야 한다(sha256 확인). 없으면 `make scrape ARGS='--pcode …'`·`make probe`로 그날 받아 둔다 — 프로젝트 규칙 1을 코드로 강제한다.
+7. 가격 차이 사전 계산: 서버 산식대로 줄 예상액 floor(max(C−B×Q,0)), 1원 이상인 줄만 basis별로 묶어 P ≥ 1.2M 또는 P−M ≥ 100만, 단위가 여럿이면 전체 금액 1.2배로도 통과.
+
+그다음 `POST …/submissions/preview`(Idempotency-Key 없음, 선점·쓰기 없음) 결과를 보여 주고 dry-run이면 멈춘다. `--confirm`이면 preview가 `ok`·`next_action=submit`일 때만 새 UUID v4 key를 `data/state/submissions/<key>.json`에 먼저 기록하고 `POST …/submissions`를 보낸다(httpx가 네트워크 오류·5xx를 같은 key·같은 본문으로 재시도). 영수증·제출 상세는 `bronze/contest/{preview,submissions,submission}`에 남기고, lint가 `pending`을 벗어날 때까지 10초 간격으로 최대 3분 본다. 응답을 못 받았거나 나중에 lint를 볼 때는 `make submit-status KEY=…`(`submission-requests/{key}` → 제출 상세).
+
+남은 것: 수정(revisions, `If-Match`)·철회, 리뷰 시트(HTML/CSV), suspect 사유 반영 흐름.
+
+10/15 실측: 다른 참가자가 선점한 파나소닉 PT-VGZ621K의 fact 281줄 평균 P는 4,792,750원으로 등재가(4,565,000~4,785,000원)보다 높았다. gold의 등재가 기반 추정 P(`p_est`)는 실제 P보다 낮을 수 있다 — 아깝게 떨어진 후보는 fact로 다시 잰다.
 
 ## 7. 확장 경로 ("대규모"가 필요해질 때)
 

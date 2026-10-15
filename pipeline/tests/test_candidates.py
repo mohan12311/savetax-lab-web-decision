@@ -92,12 +92,22 @@ def test_retail_scope_lists_it_items_and_strips_origin_prefix(make_bronze, tmp_p
     rows = (tier_a(1, "4321150101", "(JP)EOS R1") + tier_a(2, "4521160101", "EOS R1")  # 같은 검색어는 한 번
             + tier_a(3, "4323150101", "SW-1000")  # 소프트웨어는 뺀다
             + tier_a(4, "3010150101", "BLK-100")  # IT·사무·AV·가전 밖
-            + tier_a(5, "5213150101", "TV-5000"))  # 이미 선점
+            + tier_a(5, "5213150101", "TV-5000")  # 이미 선점
+            # 티어 없음(같은 값 등재 하나): 납품 5억 이상이고 모델명이 쓸 만하면 넣고, 아니면 뺀다
+            + [listing(listing_id="800000006_1000000001", item_id="80000006", detail_category_code="4321150101",
+                       model="(CN)MON-2700Q", price=Decimal("3000000"), **dlv(6, 600_000_000, qty=200)),
+               listing(listing_id="800000007_1000000001", item_id="80000007", detail_category_code="4321150101",
+                       model="X1", price=Decimal("3000000"), **dlv(7, 600_000_000, qty=200)),
+               listing(listing_id="800000008_1000000001", item_id="80000008", detail_category_code="4321150101",
+                       model="MON-2400F", price=Decimal("3000000"), **dlv(8, 300_000_000, qty=100))])
     lookups = [lookup_envelope([("80000005", "claimed"), ("80000001", "available")])]
     m, got, _ = build(make_bronze, tmp_path, rows, lookups)
     assert got["80000001"]["retail_query"] == "EOS R1"
+    assert got["80000006"]["tier"] is None
     gold = tmp_path / "gold"
     lines = lambda f: [l for l in (gold / f).read_text().splitlines() if not l.startswith("#")]
-    assert sorted(lines("retail_ids.txt")) == ["80000001", "80000002"]
-    assert lines("scrape_queries.txt") == ["EOS R1"]
-    assert m["summary"]["retail"] == {"items": 2, "queries": 1}
+    # 티어 있는 것이 먼저, 그다음 티어 없는 것(납품액순)
+    assert sorted(lines("retail_ids.txt")[:2]) == ["80000001", "80000002"]
+    assert lines("retail_ids.txt")[2:] == ["80000006"]
+    assert lines("scrape_queries.txt") == ["EOS R1", "MON-2700Q"]
+    assert m["summary"]["retail"] == {"items": 3, "queries": 2, "untiered": 1}

@@ -32,6 +32,9 @@ TOP_PER_TIER = 10
 # 소프트웨어(4323)는 라이선스 조건(채널·에디션)이 갈려 판매 페이지 단가와 바로 비교하기 어려워 뺀다.
 RETAIL_SEGMENTS = ("43", "44", "45", "52")
 RETAIL_EXCLUDE_FAMILIES = ("4323",)
+# 티어가 없어도(조달 안에서 가격이 고르게 비싸면 내부 기준가에 안 잡힌다) 납품이 이만큼이고 모델명이 있으면 넣는다.
+# 모델명 기준은 티어 B와 같다(영숫자 5자 이상, 영문·숫자 모두 포함).
+RETAIL_MIN_C = 500_000_000
 
 
 def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
@@ -64,19 +67,26 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
     lookup_text = (f"# gold candidates {started.isoformat()} — 티어가 있거나 납품 {LOOKUP_MIN_C:,}원 이상, "
                    f"{'·'.join(STICKY_STATES)} 제외\n" + "".join(i + "\n" for i in ids))
 
-    # 시중가 범위: 티어가 있고 아직 등록 가능하거나 미확인인 물품. 같은 검색어는 한 번만, 잠재액 큰 것부터.
+    # 시중가 범위: 아직 등록 가능하거나 미확인인 물품 중 티어가 있거나, 납품이 크고 모델명이 쓸 만한 것.
+    # 같은 검색어는 한 번만, 티어 있는 것(잠재액순) 다음 납품액순.
     segs = ", ".join(lit(s) for s in RETAIL_SEGMENTS)
     fams = ", ".join(lit(f) for f in RETAIL_EXCLUDE_FAMILIES)
     con.execute(f"""
-        CREATE TEMP TABLE retail AS SELECT item_id, retail_query, u_est FROM candidates
-        WHERE tier IS NOT NULL AND (claim_state IS NULL OR claim_state = 'available')
+        CREATE TEMP TABLE retail AS
+        SELECT item_id, retail_query, u_est, c_est, tier IS NOT NULL AS tiered FROM candidates
+        WHERE (claim_state IS NULL OR claim_state = 'available')
           AND left(detail_category_code, 2) IN ({segs}) AND left(detail_category_code, 4) NOT IN ({fams})
-          AND retail_query IS NOT NULL""")
-    retail_ids = [r[0] for r in con.execute("SELECT item_id FROM retail ORDER BY u_est DESC, item_id").fetchall()]
-    queries = [r[0] for r in con.execute("""
-        SELECT retail_query FROM retail GROUP BY retail_query ORDER BY max(u_est) DESC, retail_query""").fetchall()]
-    scope_note = (f"티어 있음·available 또는 미확인·분류 {'/'.join(RETAIL_SEGMENTS)}"
-                  f"(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)})")
+          AND retail_query IS NOT NULL
+          AND (tier IS NOT NULL OR (c_est >= {RETAIL_MIN_C}
+               AND length(regexp_replace(upper(retail_query), '[^0-9A-Z]', '', 'g')) >= 5
+               AND regexp_matches(upper(retail_query), '[0-9]') AND regexp_matches(upper(retail_query), '[A-Z]')))""")
+    order = "bool_or(tiered) DESC, max(u_est) DESC NULLS LAST, max(c_est) DESC"
+    retail_ids = [r[0] for r in con.execute(f"""
+        SELECT item_id FROM retail GROUP BY item_id ORDER BY {order}, item_id""").fetchall()]
+    queries = [r[0] for r in con.execute(f"""
+        SELECT retail_query FROM retail GROUP BY retail_query ORDER BY {order}, retail_query""").fetchall()]
+    scope_note = (f"available 또는 미확인·분류 {'/'.join(RETAIL_SEGMENTS)}(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)})"
+                  f"·티어 있음 또는 납품 {RETAIL_MIN_C:,}원 이상이고 모델명 있음")
     retail_ids_text = f"# 시중가 범위 물품 {started.isoformat()} — {scope_note}\n" + "".join(i + "\n" for i in retail_ids)
     queries_text = f"# 시중가 검색어 {started.isoformat()} — {scope_note}\n" + "".join(q + "\n" for q in queries)
 
@@ -88,7 +98,8 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
             SELECT coalesce(claim_state, '미확인'), count(*) FROM candidates WHERE tier IS NOT NULL
             GROUP BY 1 ORDER BY 2 DESC, 1""").fetchall()),
         "lookup_ids": len(ids),
-        "retail": {"items": len(retail_ids), "queries": len(queries)},
+        "retail": {"items": len(retail_ids), "queries": len(queries),
+                   "untiered": con.execute("SELECT count(*) FROM retail WHERE NOT tiered").fetchone()[0]},
         # 경쟁 지도: 선점 판단에만 쓴다(프로젝트 규칙 2). 미확인은 아직 lookup하지 않은 물품
         "claims_by_tier": _claims_by(con, "coalesce(tier, '-')"),
         "claims_by_band": _claims_by(con, """CASE
@@ -113,7 +124,8 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
                        "silver_tables": {t: silver_manifest["tables"][t]["sha256"] for t in SILVER_TABLES}},
             "params": {"min_u": MIN_U, "min_c_cat": MIN_C_CAT, "min_x_cat": MIN_X_CAT,
                        "lookup_min_c": LOOKUP_MIN_C, "sticky_states": list(STICKY_STATES),
-                       "retail_segments": list(RETAIL_SEGMENTS), "retail_exclude_families": list(RETAIL_EXCLUDE_FAMILIES)},
+                       "retail_segments": list(RETAIL_SEGMENTS), "retail_exclude_families": list(RETAIL_EXCLUDE_FAMILIES),
+                       "retail_min_c": RETAIL_MIN_C},
             "tables": tables,
             "checks": [c.as_dict() for c in results + out_checks],
             "summary": summary,
@@ -175,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     for b, d in s["claims_by_band"].items():
         print(_claim_line(b[3:], d))
     print(f"  lookup 대상: {s['lookup_ids']:,}개 → data/gold/lookup_ids.txt (make lookup)")
-    print(f"  시중가 범위: {s['retail']['items']:,}개 물품 → data/gold/retail_ids.txt (make lookup IDS=retail_ids), "
+    print(f"  시중가 범위: {s['retail']['items']:,}개 물품(티어 없음 {s['retail']['untiered']:,}) → data/gold/retail_ids.txt (make lookup IDS=retail_ids), "
           f"검색어 {s['retail']['queries']:,}개 → data/gold/scrape_queries.txt")
     if m["top"]:
         print(f"\n  티어별 상위 {TOP_PER_TIER} (선점 안 됐거나 미확인, 추정 잠재액순 — 조달 내부 기준가 기준이며 시중가 아님)")

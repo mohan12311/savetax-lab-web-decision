@@ -38,6 +38,41 @@ def test_tier_a_uses_cheaper_listing_of_same_item(make_bronze, tmp_path):
     assert all(c["actual"] == [] for c in m["checks"] if c["name"].endswith("parquet_float_columns"))
 
 
+def test_purchase_price_from_delivery_amount_and_qty(make_bronze, tmp_path):
+    rows = [
+        # 등재가로는 1.1배(미달)지만 실제 납품은 1억 5천만 원 ÷ 100개 = 150만 원 → 1.5배, 잠재액 1.5억 − 100만 × 100
+        listing(listing_id="510000001_1000000001", item_id="51000001", price=Decimal("1100000"),
+                **dlv(1, 150_000_000, qty=100)),
+        listing(listing_id="510000002_1000000001", item_id="51000001", price=Decimal("1000000")),
+        # 납품 단위(EA)가 등재 단위(대)와 다르면 수량을 쓰지 않고 등재가로 잰다
+        listing(listing_id="510000003_1000000001", item_id="51000002", unit="대", price=Decimal("1100000"),
+                **dlv(2, 150_000_000, qty=100, unit="EA")),
+        listing(listing_id="510000004_1000000001", item_id="51000002", unit="대", price=Decimal("1000000")),
+        # 표기만 다른 단위(EA = 개)는 같은 단위다
+        listing(listing_id="510000005_1000000001", item_id="51000003", unit="EA", price=Decimal("1000000"),
+                **dlv(3, 50_000_000, qty=50, unit="개")),
+        # 납품 단가가 등재가의 2배를 넘으면(맞춤 제작품: 등재가는 기본형) 등재가로 재고, 거르기 전 값은 p_dlv에 남긴다
+        listing(listing_id="510000006_1000000001", item_id="51000004", unit="면", price=Decimal("2000000"),
+                **dlv(4, 300_000_000, qty=10, unit="면")),
+        listing(listing_id="510000007_1000000001", item_id="51000004", unit="면", price=Decimal("1900000")),
+        # 다른 등재가 없으면 제 등재가(100만)보다 비싸게 납품(150만)됐어도 "더 싼 등재"가 아니다
+        listing(listing_id="510000008_1000000001", item_id="51000005", price=Decimal("1000000"),
+                **dlv(5, 150_000_000, qty=100)),
+    ]
+    _, got, _ = build(make_bronze, tmp_path, rows)
+    a = got["51000001"]
+    assert (a["p_est"], a["p_src"], a["p_list"], a["p_dlv"]) == \
+        (Decimal("1500000.00"), "dlv", Decimal("1100000.00"), Decimal("1500000.00"))
+    assert (a["tier"], a["u_item"], a["r_tier"]) == ("A", 50_000_000, Decimal("1.50"))
+    b = got["51000002"]
+    assert (b["p_est"], b["p_src"], b["p_dlv"], b["tier"]) == (Decimal("1100000.00"), "listing", None, None)
+    assert (got["51000003"]["p_src"], got["51000003"]["p_est"]) == ("dlv", Decimal("1000000.00"))
+    d = got["51000004"]
+    assert (d["p_est"], d["p_src"], d["p_dlv"], d["tier"]) == (Decimal("2000000.00"), "listing", Decimal("30000000.00"), None)
+    e = got["51000005"]
+    assert (e["p_est"], e["m_item"], e["tier"]) == (Decimal("1500000.00"), None, None)
+
+
 def test_tier_b_same_model_other_item(make_bronze, tmp_path):
     rows = [
         listing(listing_id="600000001_1000000001", item_id="60000001", model="AB-1234X", price=Decimal("3000000"),

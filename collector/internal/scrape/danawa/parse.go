@@ -189,6 +189,11 @@ func ParseSearch(html []byte) (*SearchResult, error) {
 		if fr, ok := parseSearchFlight(html); ok {
 			return fr, nil
 		}
+		// 옛 구조의 결과 없음 화면("…에 대한 상품 검색결과가 없습니다") — 구조 변경과 구분해 빈 목록으로 본다
+		if doc.Find("#nosearchArea").Length() > 0 {
+			res.ListFound = true
+			return res, nil
+		}
 		res.Layout = ""
 	}
 	res.ListFound = list.Length() > 0

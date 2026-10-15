@@ -9,10 +9,10 @@ from savetax_pipeline.candidates import build_candidates
 from savetax_pipeline.silver import build_silver
 
 
-def build(make_bronze, tmp_path, rows, lookups=None):
+def build(make_bronze, tmp_path, rows, lookups=None, **kw):
     root = tmp_path
     build_silver(make_bronze(rows, lookups=lookups), root / "silver")
-    m = build_candidates(root / "silver", root / "gold")
+    m = build_candidates(root / "silver", root / "gold", **kw)
     rel = duckdb.sql(f"SELECT * FROM read_parquet('{root / 'gold' / 'candidates.parquet'}')")
     got = {r[0]: dict(zip(rel.columns, r)) for r in rel.fetchall()}
     ids = [l for l in (root / "gold" / "lookup_ids.txt").read_text().splitlines() if not l.startswith("#")]
@@ -101,7 +101,7 @@ def test_retail_scope_lists_it_items_and_strips_origin_prefix(make_bronze, tmp_p
                listing(listing_id="800000008_1000000001", item_id="80000008", detail_category_code="4321150101",
                        model="MON-2400F", price=Decimal("3000000"), **dlv(8, 300_000_000, qty=100))])
     lookups = [lookup_envelope([("80000005", "claimed"), ("80000001", "available")])]
-    m, got, _ = build(make_bronze, tmp_path, rows, lookups)
+    m, got, _ = build(make_bronze, tmp_path, rows, lookups, retail_segments=("43", "44", "45", "52"))
     assert got["80000001"]["retail_query"] == "EOS R1"
     assert got["80000006"]["tier"] is None
     gold = tmp_path / "gold"

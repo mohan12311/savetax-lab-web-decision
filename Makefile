@@ -25,7 +25,8 @@ build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
 dataset:     ; $(GO) dataset
 silver:      ; $(PY) python -m savetax_pipeline.silver
-candidates:  ; $(PY) python -m savetax_pipeline.candidates
+# RETAIL=48,56처럼 시중가 범위 분류(앞 2자리)를 바꾼다. 비우면 코드 기본값
+candidates:  ; $(PY) python -m savetax_pipeline.candidates $(if $(RETAIL),--retail-segments $(RETAIL))
 # 후보 선점 조회(대회 API, 횟수 안 씀). 끝나면 make silver && make candidates로 상태를 합친다.
 # IDS=retail_ids면 시중가 범위(data/gold/retail_ids.txt)만 묻는다.
 lookup:      ; $(GO) lookup --from $(SAVETAX_DATA_DIR)/gold/$(or $(IDS),lookup_ids).txt $(ARGS)

@@ -91,7 +91,8 @@ make dataset      # 데이터셋 zip 다운로드·체크섬 검증 → data/bro
 make silver       # Python: 정규화 Parquet 생성
 make candidates   # Python: 후보 마트 생성 (data/gold/candidates.parquet)
 make lookup       # Go: data/gold/lookup_ids.txt 선점 여부 일괄 조회(ARGS='--limit N'). 끝나면 make silver && make candidates
-make lookup IDS=retail_ids  # 시중가 범위(IT·사무·AV·가전 티어 후보, data/gold/retail_ids.txt)만 조회. 검색어는 data/gold/scrape_queries.txt
+make candidates RETAIL=48,56  # 시중가 범위 분류(앞 2자리)를 골라 data/gold/retail_ids.txt·scrape_queries.txt 생성(기본값은 코드의 현재 범위)
+make lookup IDS=retail_ids  # 시중가 범위만 선점 조회. 다나와는 make scrape ARGS='--from <절대경로>/data/gold/scrape_queries.txt --top 0'
 make facts        # Go: 상위 후보 items/{id} facts 수집
 make scrape ARGS='--query <모델명> [--top 3] | --from <파일> | --pcode <코드>'  # Go: 다나와 시중가 수집(원문+추출)
 make probe ARGS='--url <https 주소> --need <모델명> | --from <파일>'  # Go: 시중 페이지가 정적 HTML로 읽히는지(본문에 상품명·가격) 판정

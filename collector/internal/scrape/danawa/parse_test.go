@@ -246,6 +246,14 @@ func TestParseSearchFlightEmptyAndUnknown(t *testing.T) {
 	if !r.ListFound || r.Layout != LayoutFlight || len(r.Catalog) != 0 || r.SearchedKeyword != "" {
 		t.Errorf("empty: %+v", r)
 	}
+	// 옛 구조의 결과 없음 화면
+	r, err = ParseSearch([]byte(`<html><head><meta charset="utf-8"></head><body><div id="productListArea"><div id="nosearchArea" data-status="200"><p class="title"><strong>"TX-1"</strong> 에 대한 상품 검색결과가 없습니다.</p></div></div></body></html>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.ListFound || r.Layout != LayoutHTML || len(r.Catalog) != 0 {
+		t.Errorf("nosearch: %+v", r)
+	}
 	r, err = ParseSearch([]byte(`<html><head><meta charset="utf-8"></head><body><div class="dnw-x">x</div></body></html>`))
 	if err != nil {
 		t.Fatal(err)

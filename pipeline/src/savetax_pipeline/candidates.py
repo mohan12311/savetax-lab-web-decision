@@ -28,16 +28,18 @@ LOOKUP_MIN_C = 100_000_000  # 티어가 없어도 납품 1억 원 이상이면 �
 STICKY_STATES = ("claimed", "reform_found", "not_found")  # 다시 묻지 않는다(철회는 watch가 잡는다)
 SILVER_TABLES = ("listings", "dlv_keys", "items", "claim_state")
 TOP_PER_TIER = 10
-# 시중가(다나와 등 정적 판매 페이지)를 먼저 잴 범위: 물품분류번호 앞 2자리 IT(43)·사무기기(44)·AV·사진(45)·가전(52).
+# 시중가(다나와 등 정적 판매 페이지)를 잴 범위: 물품분류번호 앞 2자리. 기본은 지금 보는 범위이고 --retail-segments로 바꾼다.
+#   10/15 IT(43)·사무기기(44)·AV·사진(45)·가전(52) 시험 → gap 통과 0이라 접었다(재현: --retail-segments 43,44,45,52)
+#   지금: 상업용 주방기기(48)·가구(56)
 # 소프트웨어(4323)는 라이선스 조건(채널·에디션)이 갈려 판매 페이지 단가와 바로 비교하기 어려워 뺀다.
-RETAIL_SEGMENTS = ("43", "44", "45", "52")
+RETAIL_SEGMENTS = ("48", "56")
 RETAIL_EXCLUDE_FAMILIES = ("4323",)
 # 티어가 없어도(조달 안에서 가격이 고르게 비싸면 내부 기준가에 안 잡힌다) 납품이 이만큼이고 모델명이 있으면 넣는다.
 # 모델명 기준은 티어 B와 같다(영숫자 5자 이상, 영문·숫자 모두 포함).
 RETAIL_MIN_C = 500_000_000
 
 
-def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
+def build_candidates(silver: Path, gold: Path, retail_segments: tuple[str, ...] = RETAIL_SEGMENTS) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
     silver_manifest = json.loads((silver / "manifest.json").read_text())  # 없으면 make silver가 먼저다
 
@@ -69,7 +71,7 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
 
     # 시중가 범위: 아직 등록 가능하거나 미확인인 물품 중 티어가 있거나, 납품이 크고 모델명이 쓸 만한 것.
     # 같은 검색어는 한 번만, 티어 있는 것(잠재액순) 다음 납품액순.
-    segs = ", ".join(lit(s) for s in RETAIL_SEGMENTS)
+    segs = ", ".join(lit(s) for s in retail_segments)
     fams = ", ".join(lit(f) for f in RETAIL_EXCLUDE_FAMILIES)
     con.execute(f"""
         CREATE TEMP TABLE retail AS
@@ -85,7 +87,7 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
         SELECT item_id FROM retail GROUP BY item_id ORDER BY {order}, item_id""").fetchall()]
     queries = [r[0] for r in con.execute(f"""
         SELECT retail_query FROM retail GROUP BY retail_query ORDER BY {order}, retail_query""").fetchall()]
-    scope_note = (f"available 또는 미확인·분류 {'/'.join(RETAIL_SEGMENTS)}(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)})"
+    scope_note = (f"available 또는 미확인·분류 {'/'.join(retail_segments)}(제외 {'/'.join(RETAIL_EXCLUDE_FAMILIES)})"
                   f"·티어 있음 또는 납품 {RETAIL_MIN_C:,}원 이상이고 모델명 있음")
     retail_ids_text = f"# 시중가 범위 물품 {started.isoformat()} — {scope_note}\n" + "".join(i + "\n" for i in retail_ids)
     queries_text = f"# 시중가 검색어 {started.isoformat()} — {scope_note}\n" + "".join(q + "\n" for q in queries)
@@ -124,7 +126,7 @@ def build_candidates(silver: Path, gold: Path) -> dict[str, Any]:
                        "silver_tables": {t: silver_manifest["tables"][t]["sha256"] for t in SILVER_TABLES}},
             "params": {"min_u": MIN_U, "min_c_cat": MIN_C_CAT, "min_x_cat": MIN_X_CAT,
                        "lookup_min_c": LOOKUP_MIN_C, "sticky_states": list(STICKY_STATES),
-                       "retail_segments": list(RETAIL_SEGMENTS), "retail_exclude_families": list(RETAIL_EXCLUDE_FAMILIES),
+                       "retail_segments": list(retail_segments), "retail_exclude_families": list(RETAIL_EXCLUDE_FAMILIES),
                        "retail_min_c": RETAIL_MIN_C},
             "tables": tables,
             "checks": [c.as_dict() for c in results + out_checks],
@@ -167,10 +169,15 @@ def _krw(n: int | None) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="savetax_pipeline.candidates", description=__doc__.splitlines()[0])
     ap.add_argument("--data-dir", type=Path, default=None, help="기본: $SAVETAX_DATA_DIR 또는 <repo>/data")
+    ap.add_argument("--retail-segments", default=",".join(RETAIL_SEGMENTS),
+                    help="시중가 범위 물품분류번호 앞 2자리, 쉼표로(기본: %(default)s)")
     args = ap.parse_args(argv)
     root = args.data_dir or data_dir()
+    segments = tuple(x.strip() for x in args.retail_segments.split(",") if x.strip())
+    if not segments or any(not (len(x) == 2 and x.isdigit()) for x in segments):
+        ap.error("--retail-segments는 두 자리 숫자를 쉼표로: 예 48,56")
     try:
-        m = build_candidates(root / "silver", root / "gold")
+        m = build_candidates(root / "silver", root / "gold", segments)
     except checks.CheckError as e:
         print("candidates: 차단 검사 실패 — 기존 gold를 그대로 둔다", file=sys.stderr)
         for c in e.failed:

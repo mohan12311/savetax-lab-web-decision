@@ -19,7 +19,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts found watch scrape probe agent preview submit revise preview-revise submit-status report test
+.PHONY: build check dataset silver candidates lookup facts found listing watch scrape probe agent preview submit revise preview-revise submit-status report test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -34,6 +34,8 @@ lookup:      ; $(GO) lookup --from $(SAVETAX_DATA_DIR)/gold/$(or $(IDS),lookup_i
 facts:       ; $(GO) facts --id $(ID) $(ARGS)
 # 발견 상품 카드(남의 등록분 포함)를 끝까지 읽는다. 출처 분포·방법 파악용 — 남의 근거는 우리 근거로 쓰지 않는다(CLAUDE.md 규칙 2)
 found:       ; $(GO) found $(ARGS)
+# 등재 상세(데이터 API, 예산 사용). 예: make listing ARGS='--id 002370143_1060000325' 또는 ARGS='--from 파일'
+listing:     ; $(GO) listing $(ARGS)
 watch:       ; $(GO) watch
 # scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'
 # SOURCE=naver(네이버 쇼핑 검색 API)는 키가 필요하다. 환경변수가 비면 레시피 안에서 키체인(service=savetax-lab,

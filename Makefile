@@ -19,7 +19,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts found watch scrape probe agent preview submit submit-status report test
+.PHONY: build check dataset silver candidates lookup facts found watch scrape probe agent preview submit revise preview-revise submit-status report test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -49,6 +49,9 @@ agent:       ; cd agent && uv run python -m agent.run
 preview:     ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json
 # 사람의 명시적 승인 뒤에만. 접수되면 제출 횟수를 쓴다(철회해도 돌아오지 않는다)
 submit:      ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json --confirm
+# 내 기존 제출에 수정을 올린다(물품 그대로, 제출 횟수 안 씀, 수정 뒤 lint 재검사). 사람의 명시적 승인 뒤에만. dry-run은 make preview-revise ID=…
+revise:      ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json --revise --confirm
+preview-revise: ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json --revise
 # 응답을 못 받았거나 lint를 다시 볼 때. 예: make submit-status KEY=<Idempotency-Key>
 submit-status: ; $(GO) submit --status $(KEY)
 report:      ; $(PY) python -m savetax_pipeline.report

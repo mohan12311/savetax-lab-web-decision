@@ -29,6 +29,7 @@ type fakeContest struct {
 	state    string // lookup 상태
 	previews int
 	submits  []string // Idempotency-Key
+	revises  []string // "If-Match|Idempotency-Key"
 	bodies   [][]byte
 }
 
@@ -52,18 +53,28 @@ func (f *fakeContest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(contest.LookupResult{Items: []contest.LookupItem{{Input: testItem, Kind: "item", ItemID: testItem, State: f.state}}})
 	case r.Method == "GET" && r.URL.Path == "/v1/events/current/items/"+testItem:
 		w.Write([]byte(`{"item_id":"24883583","snapshot":{"name":"회전국솥 300인용","model":"DIK-300G","fetched_at":"2026-10-15T00:00:00.000Z","facts_total":1},
-		  "availability":{"state":"available"},
+		  "availability":{"state":"` + f.state + `"},
 		  "facts":[{"fact_id":"dl:24883583:c:r:1","unit":"대","tax_basis":"vat_included","basis_id":"basis:대:vat_included","period_kind":"none",
 		            "unit_price_krw":"150000","quantity":"10","comparable_amount_krw":"1500000","scorable":true,"exclusion_reasons":[]}]}`))
 	case r.Method == "POST" && r.URL.Path == "/v1/events/current/submissions/preview":
 		f.previews++
 		b, _ := io.ReadAll(r.Body)
 		f.bodies = append(f.bodies, b)
+		if f.state == "claimed_by_me" {
+			// 실서버처럼 score_amount_krw를 숫자로 준다(10/16 실측)
+			w.Write([]byte(`{"ok":true,"total_amount_krw":"500000","lines":[{"fact_id":"dl:24883583:c:r:1","score_amount_krw":500000}],"next_action":"revise_existing",
+			  "claimed_by_me":true,"existing_submission_id":"sub-1","existing_submission_state":"accepted","current_revision":1,"price_gap":{"pass":true}}`))
+			return
+		}
 		w.Write([]byte(`{"ok":true,"total_amount_krw":"500000","lines":[{"fact_id":"dl:24883583:c:r:1","score_amount_krw":"500000"}],"next_action":"submit","price_gap":{"pass":true}}`))
 	case r.Method == "POST" && r.URL.Path == "/v1/events/current/submissions":
 		f.submits = append(f.submits, r.Header.Get("Idempotency-Key"))
 		w.WriteHeader(201)
 		w.Write([]byte(`{"submission_id":"sub-1","claim_id":"c-1","revision":1,"submission_state":"accepted","amount_krw":"500000","lint_status":"pending","web_path":"/s/sub-1"}`))
+	case r.Method == "POST" && r.URL.Path == "/v1/events/current/submissions/sub-1/revisions":
+		f.revises = append(f.revises, r.Header.Get("If-Match")+"|"+r.Header.Get("Idempotency-Key"))
+		w.WriteHeader(201)
+		w.Write([]byte(`{"submission_id":"sub-1","revision":2,"submission_state":"accepted","amount_krw":500000,"lint_status":"pending"}`))
 	case r.Method == "GET" && r.URL.Path == "/v1/events/current/submissions/sub-1":
 		w.Write([]byte(`{"submission_id":"sub-1","submission_state":"accepted","amount_krw":"500000","lint_status":"clean","lint":{"status":"clean","lines":[{"fact_id":"dl:24883583:c:r:1","verdict":"clean","reason":"일치"}]}}`))
 	default:
@@ -122,12 +133,17 @@ func setupSubmit(t *testing.T, price string, archive bool) (*app, *contest.Clien
 
 func runSubmitForTest(t *testing.T, a *app, c *contest.Client, path string, confirm bool) (string, error) {
 	t.Helper()
+	return runClaimForTest(t, a, c, path, confirm, false)
+}
+
+func runClaimForTest(t *testing.T, a *app, c *contest.Client, path string, confirm, revise bool) (string, error) {
+	t.Helper()
 	old := lookupSleep
 	lookupSleep = func(context.Context, time.Duration) error { return nil }
 	t.Cleanup(func() { lookupSleep = old })
 	var out strings.Builder
 	run := bronze.NewRun(a.bronzeRoot(), "submit", nil)
-	err := submitClaim(context.Background(), a, c, run, path, confirm, time.Minute, &out)
+	err := submitClaim(context.Background(), a, c, run, path, confirm, revise, time.Minute, &out)
 	if _, ferr := run.Finish(err); ferr != nil {
 		t.Fatal(ferr)
 	}
@@ -235,5 +251,46 @@ func TestFactsDraftCopiesFactValuesAndIsBlockedUntilFilled(t *testing.T) {
 	ps := claim.Check(cl, claim.Env{DatasetReleaseID: "rel-1", RulesetVersion: "rules-v1", ItemID: testItem, Today: "2026-10-15", Facts: it.Facts})
 	if !claim.Blocking(ps) {
 		t.Error("근거가 빈 초안은 막혀야 한다")
+	}
+}
+
+func TestReviseDryRunDoesNotPost(t *testing.T) {
+	a, c, f, path := setupSubmit(t, "100000", true)
+	f.state = "claimed_by_me"
+	out, err := runClaimForTest(t, a, c, path, false, true)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if len(f.revises) != 0 || len(f.submits) != 0 {
+		t.Errorf("dry-run인데 보냈다: revises=%v submits=%v", f.revises, f.submits)
+	}
+	if !strings.Contains(out, "수정 대상: 제출 sub-1 · 지금 revision 1") {
+		t.Errorf("출력:\n%s", out)
+	}
+}
+
+func TestReviseConfirmSendsIfMatchOnce(t *testing.T) {
+	a, c, f, path := setupSubmit(t, "100000", true)
+	f.state = "claimed_by_me"
+	out, err := runClaimForTest(t, a, c, path, true, true)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if len(f.submits) != 0 {
+		t.Errorf("수정인데 새 제출을 보냈다: %v", f.submits)
+	}
+	if len(f.revises) != 1 || !regexp.MustCompile(`^1\|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).MatchString(f.revises[0]) {
+		t.Errorf("If-Match|key = %v", f.revises)
+	}
+	if !strings.Contains(out, "수정 반영: 제출 sub-1 · revision 2 · 예상액 500,000원") || !strings.Contains(out, "lint clean") {
+		t.Errorf("출력:\n%s", out)
+	}
+}
+
+func TestReviseRefusesItemNotMine(t *testing.T) {
+	a, c, f, path := setupSubmit(t, "100000", true)
+	out, err := runClaimForTest(t, a, c, path, true, true) // state=available
+	if err == nil || len(f.revises) != 0 || f.previews != 0 {
+		t.Errorf("내 물품이 아닌데 진행했다: err=%v revises=%v previews=%d\n%s", err, f.revises, f.previews, out)
 	}
 }

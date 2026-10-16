@@ -32,13 +32,14 @@ func runSubmit(ctx context.Context, a *app, args []string) error {
 	fs := flag.NewFlagSet("submit", flag.ContinueOnError)
 	path := fs.String("claim", "", "본문 파일(data/gold/claims/<item_id>.json)")
 	confirm := fs.Bool("confirm", false, "preview가 next_action=submit이면 실제로 제출한다(제출 횟수를 쓴다)")
+	revise := fs.Bool("revise", false, "내 기존 제출에 수정(revision)을 올린다(물품 그대로, 제출 횟수 안 씀). 보내는 것은 --confirm과 함께일 때만")
 	status := fs.String("status", "", "Idempotency-Key로 접수 결과와 lint를 다시 본다(제출 없음)")
 	poll := fs.Duration("poll", 3*time.Minute, "제출 뒤 lint 판정을 기다리는 시간")
 	if err := fs.Parse(args); err != nil {
 		return usageError{err.Error()}
 	}
 	if (*path == "") == (*status == "") {
-		return usageError{"사용법: savetax submit --claim <파일> [--confirm] | --status <Idempotency-Key>"}
+		return usageError{"사용법: savetax submit --claim <파일> [--revise] [--confirm] | --status <Idempotency-Key>"}
 	}
 	c, err := a.contest()
 	if err != nil {
@@ -53,7 +54,7 @@ func runSubmit(ctx context.Context, a *app, args []string) error {
 	if *status != "" {
 		err = submitStatus(ctx, c, run, *status, out)
 	} else {
-		err = submitClaim(ctx, a, c, run, *path, *confirm, *poll, out)
+		err = submitClaim(ctx, a, c, run, *path, *confirm, *revise, *poll, out)
 	}
 	mpath, ferr := run.Finish(err)
 	if mpath != "" {
@@ -62,7 +63,7 @@ func runSubmit(ctx context.Context, a *app, args []string) error {
 	return errors.Join(err, ferr)
 }
 
-func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run, path string, confirm bool, poll time.Duration, out io.Writer) error {
+func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run, path string, confirm, revise bool, poll time.Duration, out io.Writer) error {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -97,7 +98,11 @@ func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run
 	if err != nil {
 		return err
 	}
-	if len(lk.Items) != 1 || lk.Items[0].State != "available" {
+	wantState := "available"
+	if revise {
+		wantState = "claimed_by_me" // 수정은 내가 가진 물품에만
+	}
+	if len(lk.Items) != 1 || lk.Items[0].State != wantState {
 		st := "(응답 없음)"
 		if len(lk.Items) == 1 {
 			st = lk.Items[0].State + " — " + lk.Items[0].Message
@@ -113,8 +118,8 @@ func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run
 	if err != nil {
 		return err
 	}
-	if it.Availability.State != "available" {
-		return fmt.Errorf("물품 상세의 상태가 %s다", it.Availability.State)
+	if it.Availability.State != wantState {
+		return fmt.Errorf("물품 상세의 상태가 %s다(기대 %s)", it.Availability.State, wantState)
 	}
 
 	// 4) 게이트 검사: 스키마·fact 값 일치·근거 형식, 근거 원문 보관, 가격 차이
@@ -147,17 +152,23 @@ func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run
 
 	// 5) preview(선점·쓰기 없음)
 	pv, presp, err := c.Preview(ctx, body)
+	if presp != nil {
+		// 응답을 받았으면 해석에 실패해도 원문을 남긴다
+		if werr := writeEnvelope(run, "preview", "/v1/events/current/submissions/preview",
+			map[string]any{"item_id": id, "body_sha256": bodySHA}, presp); werr != nil {
+			return errors.Join(err, werr)
+		}
+	}
 	if err != nil {
 		printAPIError(out, err)
 		return fmt.Errorf("preview 거절: %w", err)
 	}
-	if err := writeEnvelope(run, "preview", "/v1/events/current/submissions/preview",
-		map[string]any{"item_id": id, "body_sha256": bodySHA}, presp); err != nil {
-		return err
-	}
-	fmt.Fprintf(out, "preview: ok=%v · 서버 예상액 %s원 · next_action=%s\n", pv.OK, commas(pv.TotalAmountKRW), pv.NextAction)
+	fmt.Fprintf(out, "preview: ok=%v · 서버 예상액 %s원 · next_action=%s\n", pv.OK, commas(string(pv.TotalAmountKRW)), pv.NextAction)
 	if len(pv.PriceGap) > 0 {
 		fmt.Fprintf(out, "  price_gap %s\n", compactJSON(pv.PriceGap))
+	}
+	if revise {
+		return reviseClaim(ctx, a, c, run, pv, id, path, body, bodySHA, confirm, poll, out)
 	}
 	if !confirm {
 		fmt.Fprintln(out, "dry-run: 여기까지다. 사람이 preview와 근거를 확인하고 승인한 뒤에만 --confirm으로 제출한다(make submit ID=…).")
@@ -194,7 +205,7 @@ func submitClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run
 		return err
 	}
 	fmt.Fprintf(out, "접수: 제출 %s · revision %d · 예상액 %s원 · 상태 %s · lint %s\n  %s\n",
-		rc.SubmissionID, rc.Revision, commas(rc.AmountKRW), rc.SubmissionState, rc.LintStatus, rc.WebPath)
+		rc.SubmissionID, rc.Revision, commas(string(rc.AmountKRW)), rc.SubmissionState, rc.LintStatus, rc.WebPath)
 
 	// 7) lint 판정(보통 5~15초)
 	sub, err := waitLint(ctx, c, run, rc.SubmissionID, poll, out)
@@ -258,7 +269,7 @@ func waitLint(ctx context.Context, c *contest.Client, run *bronze.Run, sid strin
 }
 
 func printLint(out io.Writer, s *contest.Submission) {
-	fmt.Fprintf(out, "제출 %s: 상태 %s · 예상액 %s원 · lint %s\n", s.SubmissionID, s.SubmissionState, commas(s.AmountKRW), s.LintStatus)
+	fmt.Fprintf(out, "제출 %s: 상태 %s · 예상액 %s원 · lint %s\n", s.SubmissionID, s.SubmissionState, commas(string(s.AmountKRW)), s.LintStatus)
 	if s.Lint == nil {
 		return
 	}
@@ -292,7 +303,7 @@ func submitStatus(ctx context.Context, c *contest.Client, run *bronze.Run, key s
 		fmt.Fprintf(out, "%s: %d %s\n", key, resp.Status, compactJSON(resp.Body))
 		return nil
 	}
-	fmt.Fprintf(out, "%s: 접수됨 — 제출 %s · revision %d · 예상액 %s원\n", key, rc.SubmissionID, rc.Revision, commas(rc.AmountKRW))
+	fmt.Fprintf(out, "%s: 접수됨 — 제출 %s · revision %d · 예상액 %s원\n", key, rc.SubmissionID, rc.Revision, commas(string(rc.AmountKRW)))
 	sub, sresp, err := c.Submission(ctx, rc.SubmissionID)
 	if err != nil {
 		return err
@@ -415,7 +426,8 @@ type submitRecord struct {
 	ClaimPath    string          `json:"claim_path"`
 	BodySHA256   string          `json:"body_sha256"`
 	CreatedAt    time.Time       `json:"created_at"`
-	State        string          `json:"state"` // sending | accepted | error
+	Kind         string          `json:"kind,omitempty"` // submit(비면) | revision
+	State        string          `json:"state"`          // sending | accepted | error
 	SubmissionID string          `json:"submission_id,omitempty"`
 	LintStatus   string          `json:"lint_status,omitempty"`
 	Error        string          `json:"error,omitempty"`
@@ -451,4 +463,58 @@ func ratio2(p, m *big.Rat) string {
 	r.Mul(r, big.NewRat(100, 1))
 	q := new(big.Int).Quo(r.Num(), r.Denom())
 	return new(big.Rat).SetFrac(q, big.NewInt(100)).FloatString(2)
+}
+
+// reviseClaim은 preview가 revise_existing일 때 내 제출에 수정을 올린다(--confirm이 없으면 여기서 멈춘다).
+// 수정도 제출 변경이라 사람의 명시적 승인 뒤에만 보낸다(프로젝트 규칙 5). 제출 횟수는 쓰지 않는다.
+func reviseClaim(ctx context.Context, a *app, c *contest.Client, run *bronze.Run, pv *contest.Preview, id, path string,
+	body []byte, bodySHA string, confirm bool, poll time.Duration, out io.Writer) error {
+	if !pv.OK || pv.NextAction != "revise_existing" || pv.ExistingSubmissionID == "" || pv.CurrentRevision == nil {
+		return fmt.Errorf("preview가 수정 가능 상태가 아니다(ok=%v, next_action=%s, 제출 %q)", pv.OK, pv.NextAction, pv.ExistingSubmissionID)
+	}
+	sid, rev := pv.ExistingSubmissionID, *pv.CurrentRevision
+	fmt.Fprintf(out, "수정 대상: 제출 %s · 지금 revision %d (%s)\n", sid, rev, pv.ExistingSubmissionState)
+	if !confirm {
+		fmt.Fprintln(out, "dry-run: 여기까지다. 승인 뒤에만 --revise --confirm으로 수정을 올린다(make revise ID=…).")
+		return nil
+	}
+	key, err := newUUID()
+	if err != nil {
+		return err
+	}
+	rec := submitRecord{Key: key, Kind: "revision", ItemID: id, ClaimPath: path, BodySHA256: bodySHA, CreatedAt: time.Now().UTC(),
+		State: "sending", SubmissionID: sid}
+	recPath := filepath.Join(a.stateDir(), "submissions", key+".json")
+	if err := rec.save(recPath); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "수정: Idempotency-Key %s · If-Match %d (기록 %s)\n", key, rev, recPath)
+	rc, rresp, err := c.Revise(ctx, sid, rev, body, key)
+	if rresp != nil {
+		if werr := writeEnvelope(run, "revisions", "/v1/events/current/submissions/{sid}/revisions",
+			map[string]any{"item_id": id, "submission_id": sid, "if_match": rev, "body_sha256": bodySHA, "idempotency_key": key}, rresp); werr != nil {
+			return errors.Join(err, werr)
+		}
+	}
+	if err != nil {
+		printAPIError(out, err)
+		rec.State, rec.Error = "error", err.Error()
+		_ = rec.save(recPath)
+		return fmt.Errorf("수정 실패 — 반영 여부가 불확실하면 make submit-status KEY=%s: %w", key, err)
+	}
+	rec.State, rec.Receipt = "accepted", json.RawMessage(rresp.Body)
+	if err := rec.save(recPath); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "수정 반영: 제출 %s · revision %d · 예상액 %s원 · 상태 %s · lint %s\n",
+		sid, rc.Revision, commas(string(rc.AmountKRW)), rc.SubmissionState, rc.LintStatus)
+	sub, err := waitLint(ctx, c, run, sid, poll, out)
+	if err != nil {
+		return err
+	}
+	if sub != nil {
+		rec.LintStatus = sub.LintStatus
+		_ = rec.save(recPath)
+	}
+	return nil
 }

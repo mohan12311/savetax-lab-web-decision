@@ -1,12 +1,14 @@
 package contest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 
 	"savetax-lab/collector/internal/httpx"
 )
@@ -94,10 +96,10 @@ func (c *Client) Item(ctx context.Context, itemID string) (*Item, *httpx.Respons
 // Preview는 POST …/submissions/preview 결과다. ok는 형식·참조·산식 통과일 뿐, 등록 가능 여부는 NextAction을 본다.
 type Preview struct {
 	OK             bool   `json:"ok"`
-	TotalAmountKRW string `json:"total_amount_krw"`
+	TotalAmountKRW NumStr `json:"total_amount_krw"`
 	Lines          []struct {
 		FactID         string `json:"fact_id"`
-		ScoreAmountKRW string `json:"score_amount_krw"`
+		ScoreAmountKRW NumStr `json:"score_amount_krw"`
 	} `json:"lines"`
 	ProductAlreadyClaimed   bool            `json:"product_already_claimed"`
 	ClaimedByMe             bool            `json:"claimed_by_me"`
@@ -129,7 +131,7 @@ type Receipt struct {
 	Revision           int    `json:"revision"`
 	SubmissionState    string `json:"submission_state"`
 	AdmittedAt         string `json:"admitted_at"`
-	AmountKRW          string `json:"amount_krw"`
+	AmountKRW          NumStr `json:"amount_krw"`
 	VerificationStatus string `json:"verification_status"`
 	LintStatus         string `json:"lint_status"`
 	APIPath            string `json:"api_path"`
@@ -151,6 +153,30 @@ func (c *Client) Submit(ctx context.Context, body []byte, key string) (*Receipt,
 	var r Receipt
 	if err := json.Unmarshal(resp.Body, &r); err != nil {
 		return nil, resp, fmt.Errorf("영수증 해석 실패(접수는 됐을 수 있다 — submission-requests로 확인): %w", err)
+	}
+	return &r, resp, nil
+}
+
+// Revise는 POST …/submissions/{sid}/revisions다. 내 제출에 전체 새 본문을 올린다(물품은 바꿀 수 없고 제출 횟수는 쓰지 않는다).
+// If-Match에는 지금 revision을 넣는다(다르면 409 REVISION_CONFLICT). 수정하면 자동 근거 검사가 다시 돈다.
+func (c *Client) Revise(ctx context.Context, sid string, ifMatch int, body []byte, key string) (*Receipt, *httpx.Response, error) {
+	if !idRe.MatchString(sid) {
+		return nil, nil, fmt.Errorf("제출 번호 형식이 아니다: %q", sid)
+	}
+	if !keyRe.MatchString(key) {
+		return nil, nil, fmt.Errorf("Idempotency-Key 형식이 아니다")
+	}
+	h := http.Header{}
+	h.Set("Idempotency-Key", key)
+	h.Set("If-Match", strconv.Itoa(ifMatch))
+	resp, err := c.h.Do(ctx, &httpx.Request{Method: http.MethodPost, Path: "/v1/events/current/submissions/" + url.PathEscape(sid) + "/revisions",
+		Body: body, Header: h, Auth: true})
+	if err != nil {
+		return nil, nil, err
+	}
+	var r Receipt
+	if err := json.Unmarshal(resp.Body, &r); err != nil {
+		return nil, resp, fmt.Errorf("수정 영수증 해석 실패(반영됐을 수 있다 — submission-requests로 확인): %w", err)
 	}
 	return &r, resp, nil
 }
@@ -187,7 +213,7 @@ type Submission struct {
 	SubmissionID    string `json:"submission_id"`
 	SubmissionState string `json:"submission_state"`
 	CurrentRevision *int   `json:"current_revision"`
-	AmountKRW       string `json:"amount_krw"`
+	AmountKRW       NumStr `json:"amount_krw"`
 	LintStatus      string `json:"lint_status"`
 	Lint            *Lint  `json:"lint"`
 }
@@ -202,4 +228,31 @@ func (c *Client) Submission(ctx context.Context, sid string) (*Submission, *http
 		return nil, resp, err
 	}
 	return &s, resp, nil
+}
+
+// NumStr는 금액을 문자열로 받는다. 서버가 필드에 따라 "57000"(문자열)이나 57000(숫자)으로 주므로 둘 다 받는다
+// (preview의 lines[].score_amount_krw는 숫자로 온다 — 10/16 실측). 숫자도 float을 거치지 않고 원문 그대로 옮긴다.
+type NumStr string
+
+func (n *NumStr) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
+	switch {
+	case string(b) == "null":
+		*n = ""
+	case len(b) > 0 && b[0] == '"':
+		var s string
+		if err := json.Unmarshal(b, &s); err != nil {
+			return err
+		}
+		*n = NumStr(s)
+	default:
+		var num json.Number
+		dec := json.NewDecoder(bytes.NewReader(b))
+		dec.UseNumber()
+		if err := dec.Decode(&num); err != nil {
+			return fmt.Errorf("금액이 문자열·숫자가 아니다: %s", b)
+		}
+		*n = NumStr(num.String())
+	}
+	return nil
 }

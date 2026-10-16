@@ -46,6 +46,7 @@
 - `GET /v1/events/current/stream`: SSE. `Last-Event-ID: <stream_cursor>`, 15초 heartbeat `:hb`. `stream.resync_required`면 순위표를 다시 읽고 재구독
 - `GET /v1/events/current/stats`, `/viewer-config`
 - `GET /v1/events/current/submissions/{sid}`(본인이면 `lint` 객체 포함), `/revisions`, `/counterevidence`
+  - (실측 10/16) 판정기 장애: 10/15 15:19Z 접수분을 끝으로 그 뒤 참가자 제출이 모두 `unconfirmed`(우리 제출 3건 lint `unreadable`, 사유 "판정기 오류로 판단 유보 — 근거 파일의 문제가 아니며 … 수정(revision)을 올리면 다시 검사된다"). 복구 뒤 `make revise ID=…`(같은 본문, 횟수 안 씀)로 재검사
 - `GET /v1/events/current/submission-requests/{key}`: Idempotency-Key 결과(200 영수증, 202 확정 전, 404)
 
 ### 제출·변경 (Idempotency-Key 필수, submit 권한)

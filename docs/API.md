@@ -39,9 +39,9 @@
 
 ### 참가 인증 필요
 - `GET /v1/events/current/me`: 한도, 사용량, remaining, 제출 목록
-- `GET /v1/events/current/items/lookup?ids=a,b,…`(최대 100): 행별 `state ∈ available|claimed|claimed_by_me|reform_found|not_found`. 등재번호도 받아 item_id로 변환해 준다. 횟수 미사용. (실측 10/14) 서버가 처음 보는 물품이 섞이면 lookup도 429 `RATE_LIMITED`("새 물품을 너무 빠르게 조회하고 있습니다 — 1분쯤 뒤")가 난다. 약 2,400개 연속 조회 뒤 걸렸다
+- `GET /v1/events/current/items/lookup?ids=a,b,…`(최대 100): 행별 `state ∈ available|claimed|claimed_by_me|reform_found|not_found`. (실측 10/16) 문서에 없는 `on_hold`도 온다 — 철회된 물품 268개 중 64개(풀리기 전 대기로 추정, 등록하지 않는다). 등재번호도 받아 item_id로 변환해 준다. 횟수 미사용. (실측 10/14) 서버가 처음 보는 물품이 섞이면 lookup도 429 `RATE_LIMITED`("새 물품을 너무 빠르게 조회하고 있습니다 — 1분쯤 뒤")가 난다. 약 2,400개 연속 조회 뒤 걸렸다
 - `GET /v1/events/current/items/{item_id}`: `snapshot{name, model, manufacturer, category, listings[], source_release, fetched_at}`, `facts[{fact_id, listing_id, contract_no, request_no, line_no, unit, tax_basis, basis_id, unit_price_krw, quantity, comparable_amount_krw, scorable}]`. 첫 호출 때 서버가 물품 요약·등재 목록·최종 차수 납품 라인을 가져와 스냅샷으로 고정한다(이후 모두에게 같은 값). fact 2,000개 초과면 금액순으로 자르고 `facts_truncated: true`. 데이터 API 예산을 쓰지 않는다
-- `GET /v1/events/current/found?q=`: 발견 상품(참가자 등록 + 개혁신당 공개분)
+- `GET /v1/events/current/found?q=&who=&status=&sort=&cursor=&limit=`: 발견 상품(참가자 등록 + 개혁신당 공개분). (실측 10/16) `limit` 1~48, 응답 `{counts, items[], next_cursor, reform_amount_note}`, 카드에 `evidence_summary{hosts[], price_gap{markup_ratio, market_unit_krw, procurement_unit_krw…}}`·`status`·`finder.handle`. `status=withdrawn`은 따로 읽는다. `found/{key}` 상세에는 `price_evidence[]{source_url, quote, observed_price_krw…}`·`lines[]`·`lint.public_note`가 있다 — 남의 근거라 우리 근거로 쓰지 않는다(`make found`)
 - `GET /v1/events/current/feed?limit=1..100`: 최근 접수·수정·철회. `delta_krw` 음수 = 철회
 - `GET /v1/events/current/stream`: SSE. `Last-Event-ID: <stream_cursor>`, 15초 heartbeat `:hb`. `stream.resync_required`면 순위표를 다시 읽고 재구독
 - `GET /v1/events/current/stats`, `/viewer-config`

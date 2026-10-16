@@ -99,3 +99,22 @@ func (c *Client) Lookup(ctx context.Context, ids []string) (*LookupResult, *http
 	}
 	return &res, resp, nil
 }
+
+// Found는 GET /v1/events/current/found(발견 상품 카드 목록: 참가자 등록분 + 개혁신당 공개분).
+// q는 q·who·status·sort·cursor·limit. 스키마가 공개되지 않아 원문으로 돌려준다.
+func (c *Client) Found(ctx context.Context, q url.Values) (json.RawMessage, *httpx.Response, error) {
+	resp, err := c.h.Do(ctx, &httpx.Request{Path: "/v1/events/current/found", Query: q, Auth: true})
+	if err != nil {
+		return nil, nil, err
+	}
+	return resp.Body, resp, nil
+}
+
+// FoundDetail은 GET /v1/events/current/found/{key}(카드 상세).
+func (c *Client) FoundDetail(ctx context.Context, key string) (json.RawMessage, *httpx.Response, error) {
+	resp, err := c.h.Do(ctx, &httpx.Request{Path: "/v1/events/current/found/" + url.PathEscape(key), Auth: true})
+	if err != nil {
+		return nil, nil, err
+	}
+	return resp.Body, resp, nil
+}

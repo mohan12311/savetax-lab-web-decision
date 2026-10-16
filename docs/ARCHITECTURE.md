@@ -22,6 +22,7 @@
  hackathon   ──▶│ lookup    : items/lookup (100개 배치) · facts: items/{item_id}               │      + manifest.json
  hackathon   ──▶│ watch     : SSE /stream 또는 feed 폴링 → 선점·철회 이벤트                   │
  retail web  ──▶│ scrape    : 다나와 정적 HTML(net/http+goquery), robots.txt 준수             │──▶ data/bronze/retail/
+ naver api   ──▶│ scrape    : --source naver, 네이버 쇼핑 검색 API(공식, 탐색용)          │──▶ data/bronze/retail/naver/
                 └────────────────────────────────────────────────────────────────────────────┘
                                            │
                 ┌──────────── Python pipeline (DuckDB + Polars) ────────────┐
@@ -59,7 +60,7 @@ collector/
   internal/api/contest/         # hackathon.savetax.now 클라이언트 (오류: 평면 {code,message,request_id,retryable})
   internal/store/bronze/        # JSONL.gz 롤링 writer + manifest
   internal/store/state/         # SQLite(WAL) 작업 큐·체크포인트
-  internal/scrape/              # Site(호스트별 robots·리미터·토큰 없는 클라이언트), danawa/(검색·상품 추출)
+  internal/scrape/              # Site(호스트별 robots·리미터·토큰 없는 클라이언트), danawa/(검색·상품 추출), naver/(쇼핑 검색 API)
   internal/submit/              # claim 빌더, 사전 검증, preview/submit/revise/withdraw
 ```
 
@@ -81,6 +82,7 @@ collector/
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
 | `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
 | `scrape --source danawa` | `--query`·`--from 파일`·`--pcode` (state 큐 `scrape_danawa`) | `bronze/retail/danawa/{search,product}/dt=…/part-*.jsonl.gz` + `retail/danawa/html/dt=…/<sha256>.html.gz` | 도메인별 리미터, robots.txt 준수, 403이면 중단 |
+| `scrape --source naver` | `--query`·`--from 파일` (state 큐 `scrape_naver`), `--display 1~100`(기본 50) | `bronze/retail/naver/search/dt=…/part-*.jsonl.gz`(body = API 원문 JSON) | 공식 API, 2 req/s, 키는 환경변수·키체인만, 401·403·429면 그 작업을 pending으로 두고 중단 |
 | `probe --url <주소> [--need 문구] \| --from <파일>` | 시중 페이지 주소 | `bronze/retail/probe/{page,html}/…` | 정적 HTML의 본문 글자에 가격(N원)·문구가 있는지 판정(`static_ok`·`price_not_in_text`·`empty_shell`·`needle_missing`). EUC-KR 해독, robots 준수, 403이면 그 도메인 건너뜀, 토큰 없음 |
 | `submit` | 승인된 claim JSON | `bronze/contest/receipts/…` | 기본 preview만. `--confirm`일 때만 POST |
 
@@ -114,6 +116,17 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 - 근거로 쓸 때: 상품 페이지 URL이 근거 후보이고, quote·관측가는 보관 원문에서 다시 확인한다(6절 게이트 5). 다른 쇼핑몰·제조사 페이지가 필요해지면 같은 `Site`로 소스를 더한다.
 - 검색 페이지 구조 변경(2026-10-15 확인): 통합검색이 Next.js 앱이 되어 `ul.product_list`가 없다. 목록은 응답 HTML 안 `self.__next_f.push([1,"…"])` 조각의 react-query 상태(queryKey `["search","productList",…]`)에 JSON으로 실린다. `prodType` 1 = 가격비교 상품(숫자 pcode), 3 = 쇼핑몰 개별 상품. 파서는 옛 목록 → 새 앱 데이터 순서로 읽고 `layout`(`html_list`·`next_flight`)을 남긴다. 다나와가 검색어를 고치면 `searched_keyword`에 남긴다. 하위 상품에 `중고품`이 섞이므로 시중가 비교에서 뺀다. 상품 페이지(`/info/`)는 바뀌지 않았다.
 - 파서를 고친 뒤에는 다시 받지 않고 `make scrape ARGS='--reparse'`로 보관 원문을 다시 추출한다(sha256 확인, 원래 봉투는 두고 `params.reparsed=true` 봉투를 덧붙임 — 읽는 쪽은 같은 원문의 나중 봉투를 쓴다).
+
+### 3.7 네이버 쇼핑 검색 API (탐색, 10/16)
+다나와 통합검색의 쇼핑몰 개별 상품에는 G마켓·옥션·11번가·SSG·롯데ON·홈쇼핑이 잡히지만 **쿠팡·스마트스토어는 한 번도 안 잡혔다**(검색어 4,076개). 두 곳을 직접 받는 길은 막혀 있다(10/16 확인): 쿠팡은 www·m 모두 robots.txt부터 Akamai 403, 스마트스토어·브랜드스토어·네이버 쇼핑은 robots가 `User-agent: *`에 `Disallow: /`(ClaudeBot도 명시 차단, 쇼핑은 "AI 크롤링 및 RAG 목적 접근 금지" 명시). 브라우저 엔진(Playwright·chromedp)으로 바꿔도 robots·차단은 그대로라 우회하지 않는다. 대회 문서도 쿠팡·네이버쇼핑은 근거 검사가 못 읽는다고 적는다(`unreadable` → 순위 유지, 사람이 나중에 봄, 반려되면 기회 1회 반환).
+
+```
+make scrape SOURCE=naver ARGS='--from <절대경로>/data/gold/scrape_queries.txt [--display 50]'
+```
+- `https://openapi.naver.com/v1/search/shop.json`, `sort=sim`, `exclude=used:rental:cbshop`(중고·렌탈·해외직구 제외). 하루 25,000회 한도라 검색어 4천 개는 하루 안(2 req/s, 약 35분).
+- 키: `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET` 환경변수. 비어 있으면 Makefile이 레시피 안에서 키체인(`service=savetax-lab`, account 같은 이름)에서 읽어 이 프로세스에만 넘긴다. 헤더(`X-Naver-Client-*`)로만 보내고 로그·파일·URL에 남기지 않는다. 참가 토큰은 넣지 않는다(`naver.New`가 토큰 든 클라이언트를 거부).
+- bronze 봉투 `source=naver_shop_api`, body는 API 응답 원문(JSON 아니면 문자열로 감쌈). 제목의 `<b>` 강조·HTML 엔티티는 읽는 쪽이 푼다. `lprice`는 배송비를 포함하지 않는다.
+- 결과는 **탐색용**이다. 링크(스마트스토어·쿠팡 등)는 근거 검사가 못 읽을 수 있어, 근거는 같은 제품의 정적 판매 페이지(다른 몰·제조사 몰)를 따로 찾아 `make probe`로 보관한다. 최저가가 스마트스토어·쿠팡에만 있으면 사람이 직접 열어 확인한다(우리가 받지 않는다).
 
 ## 4. Python pipeline (전처리·분석)
 
@@ -174,6 +187,7 @@ savetax scrape --source danawa --query <모델명> [--top 3] | --from <파일> |
 - 10/15 다나와 밖 출처 시험(상업용 주방기기): 업소용 주방 전문몰 중 **주방빅마트**(bicmart.co.kr, Cafe24)는 상품 페이지·몰 검색이 정적 HTML로 읽힌다(`static_ok`, 본문 가격·구조화 가격, robots가 검색 허용). **나비드쿡**(navidcook.co.kr)은 분류 목록이 읽히지만 robots가 검색(`/search.html?*`)을 막는다. 키친월드(kitchenkorea.co.kr)는 TLS 인증서 오류, 쿡라인은 본문에 가격 없음, 금고코리아는 봇 확인 화면. 그러나 납품 상위 조달 모델 8개(DIK-300G·DIRC-113G·SSH-GS500J·SKK-CB3150·RO-122RE·SJM-APW2A·PSF-2GDN·HSO-122E4N)는 주방빅마트에 없었다(같은 몰에서 판매 중인 DIHK223K2는 검색됨). 제조사가 시장에는 다른 코드로 판다(디포: 조달 DIK-300G ↔ 시장 DIK-300P·DIK-500P·DIHK 계열, 제조사 사이트는 사양만 있고 가격 없음). 공식 제출 스키마는 근거에 "모델명이 같은 물품인지" 확인할 수 있게 적으라고 하므로, 다른 코드의 같은 사양 제품은 검증 위험이 크다. **조달 전용 모델 코드가 이 분야의 구조적 장벽이다.** 덧붙여 디포 공식몰의 DIK-300G 페이지는 본문에 "나라장터 식별번호 24883583"(= item_id)을 적고 있지만 가격은 0원("조달제품" 분류, 제품문의)이다. 사양이 거의 같은 시장 모델 DIK-300P(전력·전원·크기 같음, 컨트롤 표기만 다름)는 나비드쿡 분류 목록에서 14,300,000원인데 조달 단가는 12,000,000원(0.84배)이다. **같은 사양·다른 코드를 인정받아도 이 물품은 조달이 더 싸다** — 시장 가격이 확인되는 제품은 조달가가 비슷하거나 낮다는 오늘의 패턴과 같다.
 - 10/15 선점 분포(우리 lookup 31,170개 중 선점 4,202개, 13.5%): 분야별로 사무기기(44) 52%, AV(45) 35%, IT(43) 24%, 주방기기(48) 6%, 가구(56) 5%. 세부품명으로는 하드디스크 100%(64/64), 프로젝터 82%, 무선랜 AP 80%, 네트워크스위치 70%, 모니터 67%, 데스크톱 64%(293개), 복사기 54%, 노트북 52%. Seagate·Cisco·엡손·파나소닉·LG 노트북처럼 **시장과 같은 모델 코드를 쓰는 글로벌 브랜드는 거의 다 선점**됐고, 선점 물품 대부분은 **티어가 없다**(데스크톱 293개 중 292개). 그래서 시중가 범위를 티어 무관·납품 1억 이상·선점 잘 되는 제조사로 넓혔다(위 범위 설명). 선점 상태는 탐색 방향을 고르는 데만 쓰고 남의 근거는 보지 않는다(CLAUDE.md 규칙 2).
 - 10/15 선점된 물품 표본 30개를 다나와로 직접 재 봤다(남의 근거는 보지 않음): 모델이 맞은 6개 중 엡손 EB-L530U 1.76배·EB-L690U 1.59배·Seagate ST10000NM017B 약 1.39배(용량 확인 필요)는 gap 통과, 삼성 냉장고 0.87~0.92배·98인치 TV 0.58배는 오히려 조달이 쌌다. 같은 분류의 **남은** 고액 물품(뷰소닉 프로젝터 0.73 등)은 시중가 수준 — 쉬운 gap은 이미 가져갔다. 그런 제조사도 납품 1천만~1억 구간은 lookup해 보니 2,757개 중 2,371개가 등록 가능(선점 14%)이라, 범위를 이 구간까지 내렸다.
+- 10/16 다나와 시중가 범위 전체 대조(3,910개 중 3,907개 검색, 대기열 4,078건 완료): 가격비교 상품 없음 3,284(84%), 모델 불일치 462, 모델 일치 161개. **gap 통과 0개.** 같은 모델은 최고 1.15배(뷰소닉 VS19516)이고 대부분 1.0배 안팎(캐논 RF 15-35mm 1.12, GL-LP452UST 1.08, EOS R5 Mark II 1.04, LG·대우 TV 약 1.0). 통과로 잡힌 줄은 모두 다른 물건이었다: 허브랙 SGDR-750-2(600×2000×750mm)는 다나와 22U·36U에 맞춰져 1.44~1.66배였지만 같은 높이의 40U(816,000원)와는 0.92배, EB-PU1006W는 렌즈 없는 "NL"판(1,299,990원)에 맞춰졌고 일반판(11,600,000원)보다 조달이 쌌다, 55VH7B는 리퍼비시. 쇼핑몰 개별 상품만 있는 검색어 562개(모델 일치 179개)도 통과 줄은 토너·벨트·디스크·컨트롤러 같은 부속이거나 이름만 겹친 물건(축구공 JH1270, 오토바이 인터콤)이었다. 갤럭시탭 SM-X526N(S10 FE 5G) 1.16배, SM-X406N(S10 라이트 5G) 0.82배. 방화벽(시큐아이·퓨쳐시스템·AXGATE)·도청방지기·디스크어레이는 다나와에 없다.
 - 다나와는 옛 구조의 결과 없음 화면(`#nosearchArea`)도 아직 섞어 내보낸다. 파서는 이를 `list_found=true`·빈 목록으로 본다.
 - 내부 기준가만으로는 거짓 양성이 많다(10/14 확인: Windows Server 2025 2코어 티어 B는 조달 154,000원 < 시중 199,000원, EOS R1 티어 C는 조달 830만 원 대 시중 808만 원으로 1.03배). 그래서 시중가(다나와 등 정적 페이지)로 gap 기준을 다시 재는 단계가 필수다.
 - 다음 단계: 시중가 근거 가능성(정적 판매 페이지가 있는 품목인가)을 점수에 넣고, 대회 fact로 C·Q·P를 확정해 다시 계산한다(M4).

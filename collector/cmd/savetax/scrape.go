@@ -37,9 +37,10 @@ func (s *stringsFlag) Set(v string) error { *s = append(*s, v); return nil }
 
 // runScrape는 다나와 검색·상품 페이지를 받아 원문(HTML)과 추출 결과를 bronze에 쌓는다.
 // 작업은 state 큐(scrape_danawa)에 올려 두고 하나씩 처리하므로 중간에 끊겨도 다음 실행에서 이어진다.
+// --source naver면 네이버 쇼핑 검색 API로 검색어만 묻는다(scrape_naver.go).
 func runScrape(ctx context.Context, a *app, args []string) error {
 	fs := flag.NewFlagSet("scrape", flag.ContinueOnError)
-	source := fs.String("source", "danawa", "시중가 소스(현재 danawa만)")
+	source := fs.String("source", "danawa", "시중가 소스: danawa | naver(쇼핑 검색 API)")
 	var queries, pcodes stringsFlag
 	fs.Var(&queries, "query", "검색어(모델명 등). 여러 번 줄 수 있다")
 	fs.Var(&pcodes, "pcode", "다나와 상품 코드를 검색 없이 바로 받는다. 여러 번 줄 수 있다")
@@ -47,11 +48,18 @@ func runScrape(ctx context.Context, a *app, args []string) error {
 	top := fs.Int("top", 3, "검색어마다 상품 페이지를 받을 가격비교 상품 수(0이면 검색만)")
 	refresh := fs.Bool("refresh", false, "이미 끝난 작업도 다시 받는다")
 	reparse := fs.Bool("reparse", false, "보관한 검색 원문을 지금 파서로 다시 추출한다(다나와에 요청하지 않는다)")
+	display := fs.Int("display", 50, "naver: 검색어마다 받을 상품 수(1~100)")
 	if err := fs.Parse(args); err != nil {
 		return usageError{err.Error()}
 	}
+	if *source == "naver" {
+		if len(pcodes) > 0 || *reparse {
+			return usageError{"--pcode·--reparse는 다나와 전용"}
+		}
+		return runScrapeNaver(ctx, a, args, queries, *from, *display, *refresh)
+	}
 	if *source != "danawa" {
-		return usageError{fmt.Sprintf("지원하지 않는 소스: %q (현재 danawa만)", *source)}
+		return usageError{fmt.Sprintf("지원하지 않는 소스: %q (danawa | naver)", *source)}
 	}
 	if *reparse {
 		return reparseSearch(a.bronzeRoot(), args, os.Stdout)

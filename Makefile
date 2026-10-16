@@ -19,7 +19,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts watch scrape probe agent preview submit submit-status report test
+.PHONY: build check dataset silver candidates lookup facts found watch scrape probe agent preview submit submit-status report test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -32,9 +32,16 @@ candidates:  ; $(PY) python -m savetax_pipeline.candidates $(if $(RETAIL),--reta
 lookup:      ; $(GO) lookup --from $(SAVETAX_DATA_DIR)/gold/$(or $(IDS),lookup_ids).txt $(ARGS)
 # 지정한 물품만 조회한다(첫 호출이 서버 스냅샷을 만들어 남에게도 보이는 신호가 된다 — 제출 직전 후보에만). 예: make facts ID=24883583 ARGS='--draft'
 facts:       ; $(GO) facts --id $(ID) $(ARGS)
+# 발견 상품 카드(남의 등록분 포함)를 끝까지 읽는다. 출처 분포·방법 파악용 — 남의 근거는 우리 근거로 쓰지 않는다(CLAUDE.md 규칙 2)
+found:       ; $(GO) found $(ARGS)
 watch:       ; $(GO) watch
 # scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'
-scrape:      ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax scrape --source $(or $(SOURCE),danawa) $(ARGS)
+# SOURCE=naver(네이버 쇼핑 검색 API)는 키가 필요하다. 환경변수가 비면 레시피 안에서 키체인(service=savetax-lab,
+# account=NAVER_CLIENT_ID·NAVER_CLIENT_SECRET)에서 읽어 이 프로세스에만 넘긴다(명령줄·파일에 값을 두지 않는다).
+NAVER_ENV = export NAVER_CLIENT_ID="$${NAVER_CLIENT_ID:-$$(security find-generic-password -s savetax-lab -a NAVER_CLIENT_ID -w 2>/dev/null)}" \
+	NAVER_CLIENT_SECRET="$${NAVER_CLIENT_SECRET:-$$(security find-generic-password -s savetax-lab -a NAVER_CLIENT_SECRET -w 2>/dev/null)}";
+unexport NAVER_ENV
+scrape:      ; $(if $(filter naver,$(SOURCE)),$(NAVER_ENV)) cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax scrape --source $(or $(SOURCE),danawa) $(ARGS)
 # probe도 시중 사이트만 부른다(토큰 제거). 예: make probe ARGS='--url https://… --need 모델명' 또는 ARGS='--from 파일'
 probe:       ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax probe $(ARGS)
 agent:       ; cd agent && uv run python -m agent.run

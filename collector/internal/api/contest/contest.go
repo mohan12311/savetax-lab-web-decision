@@ -118,3 +118,12 @@ func (c *Client) FoundDetail(ctx context.Context, key string) (json.RawMessage, 
 	}
 	return resp.Body, resp, nil
 }
+
+// Counterevidence는 GET /v1/events/current/submissions/{sid}/counterevidence(제출에 달린 공개 반증 목록, 읽기 전용).
+func (c *Client) Counterevidence(ctx context.Context, sid string) (json.RawMessage, *httpx.Response, error) {
+	resp, err := c.h.Do(ctx, &httpx.Request{Path: "/v1/events/current/submissions/" + url.PathEscape(sid) + "/counterevidence", Auth: true})
+	if err != nil {
+		return nil, nil, err
+	}
+	return resp.Body, resp, nil
+}

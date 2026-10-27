@@ -26,6 +26,8 @@ func runFound(ctx context.Context, a *app, args []string) error {
 	maxPages := fs.Int("max-pages", 0, "읽을 최대 페이지 수(0이면 끝까지)")
 	var details stringsFlag
 	fs.Var(&details, "detail", "카드 key의 상세(found/{key})만 받는다. 여러 번 줄 수 있다")
+	var counters stringsFlag
+	fs.Var(&counters, "counter", "제출 id에 달린 공개 반증 목록(submissions/{sid}/counterevidence)만 받는다. 여러 번 줄 수 있다")
 	if err := fs.Parse(args); err != nil {
 		return usageError{err.Error()}
 	}
@@ -39,8 +41,11 @@ func runFound(ctx context.Context, a *app, args []string) error {
 	out := os.Stdout
 	run := bronze.NewRun(a.bronzeRoot(), "found", args)
 	run.TrackStats(c.HTTP().Service(), c.HTTP().Stats())
-	if len(details) > 0 {
+	if len(details) > 0 || len(counters) > 0 {
 		err = foundDetails(ctx, c, run, details)
+		if err == nil {
+			err = foundCounters(ctx, c, run, counters)
+		}
 		mpath, ferr := run.Finish(err)
 		if mpath != "" {
 			fmt.Fprintf(out, "run manifest: %s\n", mpath)
@@ -115,7 +120,34 @@ func foundPage(body []byte) (n int, next string, keys []string) {
 	return n, "", keys
 }
 
+// foundCounters는 제출마다 달린 공개 반증 목록을 bronze/contest/counterevidence에 쌓는다.
+// 반증 본문은 검토 기준 파악용이고, 거기 실린 링크·가격을 우리 근거로 옮기지 않는다(CLAUDE.md 규칙 2).
+func foundCounters(ctx context.Context, c *contest.Client, run *bronze.Run, sids []string) error {
+	if len(sids) == 0 {
+		return nil
+	}
+	w, err := run.Writer("contest", "counterevidence")
+	if err != nil {
+		return err
+	}
+	for _, sid := range sids {
+		body, resp, err := c.Counterevidence(ctx, sid)
+		if err != nil {
+			return fmt.Errorf("반증 %s: %w", sid, err)
+		}
+		if err := w.Write(bronze.Envelope{FetchedAt: time.Now().UTC(), Source: "contest_api", Endpoint: "/v1/events/current/submissions/{sid}/counterevidence",
+			Params: map[string]any{"sid": sid}, Status: resp.Status, Body: body}); err != nil {
+			return err
+		}
+		fmt.Fprintf(os.Stdout, "반증 %s 받음 (%dB)\n", sid, len(body))
+	}
+	return nil
+}
+
 func foundDetails(ctx context.Context, c *contest.Client, run *bronze.Run, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
 	w, err := run.Writer("contest", "found_detail")
 	if err != nil {
 		return err

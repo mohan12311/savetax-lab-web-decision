@@ -1,17 +1,23 @@
 # collector — Go 수집·조회·제출 CLI
 
-설계는 `docs/ARCHITECTURE.md` 3절. 여기는 사용법과 구현 현황만 적는다.
+설계는 `docs/ARCHITECTURE.md` 3절. 여기는 사용법만 적는다. 설계에 있던 `crawl`(후보 큐 기반 대량 수집)·`watch`(SSE 피드 감시)는 구현하지 않았다.
 
 ## 명령 (저장소 루트에서 `make <명령>`)
 
-| 명령 | 상태 | 하는 일 | 토큰 |
-|---|---|---|---|
-| `make check` | M1 ✅ | `/v1/events/current` 상수(지난 실행 대비 변경 감지), 대회 `/me` 한도·remaining, 데이터 API `/v1/me` 사용량, 데이터셋 최신 버전 vs 로컬 | 없으면 공개 항목만 |
-| `make dataset` | M1 ✅ | `latest.json` → `SHA256SUMS`와 교차 확인 → 공식 ZIP URL(`/latest/savetax-products.zip`, 토큰을 보내는 유일한 데이터셋 주소)에서 받기(sha256·크기 검증, 실패 시 처음부터 최대 3회) → 경로 검사 후 압축 해제 → 내부 파일 재검증 → `COMPLETE.json`·`current.json` | 필요 |
-| `make scrape ARGS='--query <모델명>'` | M5 ✅ | 다나와 검색 → 상위 `--top`(기본 3)개 상품 페이지 수집. robots.txt 준수(검색 Crawl-delay 10초), state 큐로 이어받기, 끝난 작업은 `--refresh`로만 다시, 403이면 중단. `--from <파일>`(한 줄 하나), `--pcode <코드>`도 받는다 | 보내지 않음(프로세스에서도 제거) |
-| `make lookup [ARGS='--limit N']` | M3 ✅ | `data/gold/lookup_ids.txt`를 대회 `items/lookup`으로 100개씩 조회 → `bronze/contest/lookup/`. 스냅샷을 만들지 않고 제출 횟수도 쓰지 않는다. 큐 없이 매번 목록 전체. `--from <파일>`, `--id <번호>`도 받는다 | 필요 |
-| `make probe ARGS='--url <주소> --need <모델명>'` | M5 | 시중 페이지를 정적 HTML로 받아 본문 글자에 가격·문구가 있는지 판정(lint 가독성 미리보기). EUC-KR 해독, robots 준수, 403 도메인은 건너뜀. `--from <파일>`(`주소 \| 문구 \| 문구`) | 보내지 않음(프로세스에서도 제거) |
-| `crawl` `facts` `watch` `submit` | M4~M6 | — | — |
+| 명령 | 하는 일 | 토큰 |
+|---|---|---|
+| `make check` | `/v1/events/current` 상수(지난 실행 대비 변경 감지), 대회 `/me` 한도·remaining, 데이터 API `/v1/me` 사용량, 데이터셋 최신 버전 vs 로컬 | 없으면 공개 항목만 |
+| `make dataset` | `latest.json` → `SHA256SUMS`와 교차 확인 → 공식 ZIP URL(`/latest/savetax-products.zip`, 토큰을 보내는 유일한 데이터셋 주소)에서 받기(sha256·크기 검증, 실패 시 처음부터 최대 3회) → 경로 검사 후 압축 해제 → 내부 파일 재검증 → `COMPLETE.json`·`current.json` | 필요 |
+| `make lookup [ARGS='--limit N']` | `data/gold/lookup_ids.txt`를 대회 `items/lookup`으로 100개씩 조회 → `bronze/contest/lookup/`. 스냅샷을 만들지 않고 제출 횟수도 쓰지 않는다. 큐 없이 매번 목록 전체. 429면 65초 뒤 같은 묶음을 다시 묻는다. `--from <파일>`, `--id <번호>`도 받는다 | 필요 |
+| `make facts ID=… [ARGS='--draft']` | 지정 물품의 `items/{item_id}`(스냅샷·납품 fact) → `bronze/contest/items/`, 비교 기준별 납품 단가 P와 gap 기준을 통과하는 최대 시중가. `--draft`는 fact 값을 글자 그대로 옮긴 본문 초안 | 필요 |
+| `make found [ARGS='--max-pages N \| --detail <key> \| --counter <sid>']` | 공개 발견 카드 목록·상세, 제출별 공개 반증 목록 → `bronze/contest/{found,found_detail,counterevidence}/`. 출처 분포·검토 기준 파악용이고 남의 근거는 쓰지 않는다 | 필요 |
+| `make listing ARGS='--id <등재번호> \| --from <파일>'` | 데이터 API 등재 상세 → `bronze/data/listings/`(동급 비교용 속성, 데이터 API 예산 사용) | 필요 |
+| `make scrape ARGS='--query <모델명>'` | 다나와 검색 → 상위 `--top`(기본 3)개 상품 페이지 수집. robots.txt 준수(검색 Crawl-delay 10초), state 큐로 이어받기, 끝난 작업은 `--refresh`로만 다시, 403이면 중단. `--from <파일>`, `--pcode <코드>`, 파서 수정 뒤 `--reparse` | 보내지 않음(프로세스에서도 제거) |
+| `make scrape SOURCE=naver ARGS='--from <파일>'` | 네이버 쇼핑 검색 API(공식, 탐색용) → `bronze/retail/naver/search/` | 참가 토큰 없음, 네이버 키만 |
+| `make probe ARGS='--url <주소> --need <모델명>'` | 시중 페이지를 정적 HTML로 받아 본문 글자에 가격·문구가 있는지 판정(lint 가독성 미리보기). EUC-KR 해독, robots 준수, 403 도메인은 건너뜀. `--from <파일>`(`주소 \| 문구 \| 문구`) | 보내지 않음(프로세스에서도 제거) |
+| `make preview ID=…` · `make submit ID=…` | 본문 게이트 검사(docs/ARCHITECTURE.md 6절) → preview(dry-run). `submit`(`--confirm`)은 사람의 명시적 승인 뒤에만 | 필요 |
+| `make preview-revise ID=…` · `make revise ID=…` | 내 기존 제출의 수정(`If-Match: <revision>`, 전체 새 본문) | 필요 |
+| `make submit-status KEY=…` | Idempotency-Key로 접수 결과·lint 다시 보기 | 필요 |
 
 `go run ./cmd/savetax dataset [--verify | --force]`
 

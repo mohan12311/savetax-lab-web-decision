@@ -1,5 +1,16 @@
 # 아키텍처 — Go 수집 · Python 전처리 · AI 에이전트 · 대규모 분석
 
+> **이 문서는 대회 기간(10/14~10/16)에 쓴 설계 문서다.** 대회가 끝난 뒤(10/27) 구현 상태를 아래처럼 표시했다. 본문의 날짜별 실측 기록은 그대로 둔다.
+>
+> | 부분 | 상태 |
+> |---|---|
+> | Go collector: `check`·`dataset`·`lookup`·`facts`·`found`·`listing`·`scrape`(다나와·네이버 API)·`probe`·`submit`(preview·confirm·revise·status) | 구현 |
+> | Go `crawl`(후보 큐 기반 대량 수집)·`watch`(SSE 감시) | **구현 안 함** — 대회 `items/{id}` fact로 충분했고, 선점 감시는 `lookup` 재조회로 대신했다 |
+> | Python silver(`listings`·`dlv_keys`·`items`·`claim_state`)·gold 후보 | 구현(DuckDB SQL만. Polars·pydantic·structlog는 쓰지 않았다). `deliveries_final`은 crawl이 없어 빈 표, `contest_facts`·`retail_offers`는 만들지 않았다 |
+> | 5절 AI 에이전트 계층(Claude API 배치 파이프라인) | **구현 안 함** — 대회 중에는 Claude Code 세션이 이 역할(동급 판정·근거 초안)을 사람과 대화하며 맡았다. 후반 일회성 스크립트는 `scripts/hackathon/` |
+> | 6절 제출 게이트 | 구현. 수정(revision)은 10/16 추가, 철회·리뷰 시트·suspect 흐름은 구현 안 함 |
+> | 7·8절 확장 경로·운영 | 설계만(일일 리포트 없음) |
+
 ## 1. 설계 목표와 제약
 
 | 구분 | 내용 | 설계에 주는 영향 |
@@ -77,10 +88,10 @@ collector/
 |---|---|---|---|
 | `check` | — | 콘솔 출력 | `/v1/events/current` 상수, 대회 `/me` 한도·remaining, 데이터 `/v1/me` 사용량 |
 | `dataset` | — | `data/bronze/dataset/<ver>/` | curl과 동일한 GET, `SHA256SUMS` 검증, 이어받기 없음 |
-| `crawl --kind listing\|item\|deliveries` | state 큐(gold 후보에서 적재) | `bronze/data/<kind>/dt=YYYY-MM-DD/part-*.jsonl.gz` (`run.Writer("data", kind)`) | deliveries는 `final=1`, `limit≤1000`, offset 페이지. 봉투 `body`는 응답 전체(`{data:{id, contractNo, finalSummary, rows, page}}`) — silver `deliveries_final`이 이 경로를 읽는다 |
+| `crawl --kind listing\|item\|deliveries` (**구현 안 함**) | state 큐(gold 후보에서 적재) | `bronze/data/<kind>/dt=YYYY-MM-DD/part-*.jsonl.gz` (`run.Writer("data", kind)`) | deliveries는 `final=1`, `limit≤1000`, offset 페이지. 봉투 `body`는 응답 전체(`{data:{id, contractNo, finalSummary, rows, page}}`) — silver `deliveries_final`이 이 경로를 읽는다 |
 | `lookup --from <파일> [--limit N]` | `data/gold/lookup_ids.txt`(`make candidates`가 만든다) | `bronze/contest/lookup/dt=…/part-*.jsonl.gz` | 100개 배치, 스냅샷 안 만듦, 제출 횟수 미사용. 큐 없이 매번 목록 전체(끊기면 다시 실행). 응답에 빠진 번호는 missing으로 센다 |
 | `facts` | 미선점 후보 | `bronze/contest/items/…` | 첫 호출 때 서버 스냅샷 고정 → 그 값이 채점 기준 |
-| `watch` | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
+| `watch` (**구현 안 함**) | `leaderboard`의 `stream_cursor` | `bronze/contest/events/…` | SSE `Last-Event-ID`, `resync_required` 시 순위표 재조회. 철회(delta<0) 감지 → lookup 재큐 |
 | `scrape --source danawa` | `--query`·`--from 파일`·`--pcode` (state 큐 `scrape_danawa`) | `bronze/retail/danawa/{search,product}/dt=…/part-*.jsonl.gz` + `retail/danawa/html/dt=…/<sha256>.html.gz` | 도메인별 리미터, robots.txt 준수, 403이면 중단 |
 | `scrape --source naver` | `--query`·`--from 파일` (state 큐 `scrape_naver`), `--display 1~100`(기본 50) | `bronze/retail/naver/search/dt=…/part-*.jsonl.gz`(body = API 원문 JSON) | 공식 API, 2 req/s, 키는 환경변수·키체인만, 401·403·429면 그 작업을 pending으로 두고 중단 |
 | `probe --url <주소> [--need 문구] \| --from <파일>` | 시중 페이지 주소 | `bronze/retail/probe/{page,html}/…` | 정적 HTML의 본문 글자에 가격(N원)·문구가 있는지 판정(`static_ok`·`price_not_in_text`·`empty_shell`·`needle_missing`). EUC-KR 해독, robots 준수, 403이면 그 도메인 건너뜀, 토큰 없음 |
@@ -194,6 +205,8 @@ make scrape SOURCE=naver ARGS='--from <절대경로>/data/gold/scrape_queries.tx
 
 ## 5. AI 에이전트 계층
 
+> 구현 안 함(맨 위 상태 표). 아래는 대회 초반의 설계안이다.
+
 | 작업 | 입력 | 출력(JSON 스키마) | 실행 방식 |
 |---|---|---|---|
 | A 속성 추출 | 조달 품명·규격 문자열 | `{manufacturer, model, spec, pack_unit, pack_qty, confidence}` | 정규식으로 먼저 처리하고, 남은 것만 LLM Batch로 처리 |
@@ -221,7 +234,7 @@ make scrape SOURCE=naver ARGS='--from <절대경로>/data/gold/scrape_queries.tx
 
 그다음 `POST …/submissions/preview`(Idempotency-Key 없음, 선점·쓰기 없음) 결과를 보여 주고 dry-run이면 멈춘다. `--confirm`이면 preview가 `ok`·`next_action=submit`일 때만 새 UUID v4 key를 `data/state/submissions/<key>.json`에 먼저 기록하고 `POST …/submissions`를 보낸다(httpx가 네트워크 오류·5xx를 같은 key·같은 본문으로 재시도). 영수증·제출 상세는 `bronze/contest/{preview,submissions,submission}`에 남기고, lint가 `pending`을 벗어날 때까지 10초 간격으로 최대 3분 본다. 응답을 못 받았거나 나중에 lint를 볼 때는 `make submit-status KEY=…`(`submission-requests/{key}` → 제출 상세).
 
-남은 것: 수정(revisions, `If-Match`)·철회, 리뷰 시트(HTML/CSV), suspect 사유 반영 흐름.
+남은 것(10/15 기준): 수정(revisions, `If-Match`)·철회, 리뷰 시트(HTML/CSV), suspect 사유 반영 흐름. → 수정은 10/16 구현(`make revise`), 나머지는 구현하지 않았다.
 
 10/15 실측: 다른 참가자가 선점한 파나소닉 PT-VGZ621K의 fact 281줄 평균 P는 4,792,750원으로 등재가(4,565,000~4,785,000원)보다 높았고, fact 금액·수량 합(1,768,525,000원·369대)은 데이터셋 납품 금액·수량과 같았다. 그래서 gold `p_est`를 납품 금액÷수량으로 바꿨다(4.3절, 등재가 기반 옛 값은 `p_list`). 그래도 단위·세금 기준이 여럿인 물품은 한 단가로 섞이므로 제출 직전에는 `make facts`로 기준별 P를 다시 잰다.
 

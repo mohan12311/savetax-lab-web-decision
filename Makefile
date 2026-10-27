@@ -19,7 +19,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts found listing watch scrape probe agent preview submit revise preview-revise submit-status report test
+.PHONY: build check dataset silver candidates lookup facts found listing scrape probe preview submit revise preview-revise submit-status test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -36,7 +36,6 @@ facts:       ; $(GO) facts --id $(ID) $(ARGS)
 found:       ; $(GO) found $(ARGS)
 # 등재 상세(데이터 API, 예산 사용). 예: make listing ARGS='--id 002370143_1060000325' 또는 ARGS='--from 파일'
 listing:     ; $(GO) listing $(ARGS)
-watch:       ; $(GO) watch
 # scrape는 시중 사이트만 부르므로 토큰을 프로세스에 넘기지 않는다. 예: make scrape ARGS='--query S24C310 --top 1'
 # SOURCE=naver(네이버 쇼핑 검색 API)는 키가 필요하다. 환경변수가 비면 레시피 안에서 키체인(service=savetax-lab,
 # account=NAVER_CLIENT_ID·NAVER_CLIENT_SECRET)에서 읽어 이 프로세스에만 넘긴다(명령줄·파일에 값을 두지 않는다).
@@ -46,7 +45,6 @@ unexport NAVER_ENV
 scrape:      ; $(if $(filter naver,$(SOURCE)),$(NAVER_ENV)) cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax scrape --source $(or $(SOURCE),danawa) $(ARGS)
 # probe도 시중 사이트만 부른다(토큰 제거). 예: make probe ARGS='--url https://… --need 모델명' 또는 ARGS='--from 파일'
 probe:       ; cd collector && env -u SAVETAX_TOKEN go run ./cmd/savetax probe $(ARGS)
-agent:       ; cd agent && uv run python -m agent.run
 # 게이트 검사 → preview(dry-run, 선점·쓰기 없음)
 preview:     ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json
 # 사람의 명시적 승인 뒤에만. 접수되면 제출 횟수를 쓴다(철회해도 돌아오지 않는다)
@@ -56,5 +54,4 @@ revise:      ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json -
 preview-revise: ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).json --revise
 # 응답을 못 받았거나 lint를 다시 볼 때. 예: make submit-status KEY=<Idempotency-Key>
 submit-status: ; $(GO) submit --status $(KEY)
-report:      ; $(PY) python -m savetax_pipeline.report
 test:        ; cd collector && go test ./... && if [ -f ../pipeline/pyproject.toml ]; then cd ../pipeline && env -u SAVETAX_TOKEN uv run pytest; fi

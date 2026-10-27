@@ -31,10 +31,8 @@ type command struct {
 var commands = []command{
 	{"check", "대회 상수(/v1/events/current)·내 한도(/me)·데이터 API 사용량·데이터셋 버전 확인", runCheck},
 	{"dataset", "데이터셋 zip 다운로드 → SHA256 검증 → data/bronze/dataset/<ver>/", runDataset},
-	{"crawl", "(M4) 후보 큐 기반 listings/items/deliveries 수집", notYet("M4")},
 	{"lookup", "물품번호 목록의 선점 상태를 items/lookup으로 100개씩 조회 → data/bronze/contest/lookup/", runLookup},
 	{"facts", "지정한 물품의 items/{item_id}(스냅샷·납품 fact) → data/bronze/contest/items/, 가격 차이 기준 계산(--draft 본문 초안)", runFacts},
-	{"watch", "(M6) SSE 피드 감시", notYet("M6")},
 	{"scrape", "다나와 검색·상품 페이지 수집 → data/bronze/retail/danawa/ (원문 HTML + 추출)", runScrape},
 	{"found", "발견 상품 카드 목록(참가자 등록분·개혁신당 공개분)을 cursor로 끝까지 → data/bronze/contest/found/ (출처 분포·방법 파악용, 남의 근거는 쓰지 않는다)", runFound},
 	{"listing", "데이터 API 등재 상세(listings/{id}) → data/bronze/data/listings/, 동급 비교용 속성·우수조달 지정 기술 요약(예산 사용)", runListing},
@@ -103,12 +101,6 @@ func usage() {
 		fmt.Fprintf(os.Stderr, "  %-8s %s\n", c.name, c.summary)
 	}
 	fmt.Fprintln(os.Stderr, "\n환경변수: SAVETAX_TOKEN(필수: 인증 명령), SAVETAX_DATA_DIR, SAVETAX_*_RPS, SAVETAX_USER_AGENT")
-}
-
-func notYet(milestone string) func(context.Context, *app, []string) error {
-	return func(context.Context, *app, []string) error {
-		return usageError{fmt.Sprintf("아직 구현되지 않음 (%s 예정)", milestone)}
-	}
 }
 
 // app은 명령들이 공유하는 설정·로거·리미터다. 리미터는 프로세스 안에서 이름별로 하나다.

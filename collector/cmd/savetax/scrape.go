@@ -186,11 +186,16 @@ func siteNote(s *scrape.Site) string {
 // retailSite는 시중 사이트 하나의 클라이언트다. 참가 토큰을 넣지 않는다(scrape.NewSite가 토큰 없이 만든다).
 func (a *app) retailSite(ctx context.Context, base string) (*scrape.Site, error) {
 	host := strings.TrimPrefix(base, "https://")
+	hc, err := a.demoHTTP()
+	if err != nil {
+		return nil, err
+	}
 	return scrape.NewSite(ctx, scrape.SiteOptions{
-		BaseURL:   base,
-		UserAgent: a.cfg.UserAgent,
-		Limiter:   a.lim.Get(ratelimit.Retail(host)),
-		Logger:    a.log,
+		BaseURL:    base,
+		UserAgent:  a.cfg.UserAgent,
+		Limiter:    a.lim.Get(ratelimit.Retail(host)),
+		Logger:     a.log,
+		HTTPClient: hc,
 	})
 }
 

@@ -72,3 +72,69 @@ func TestBadRPS(t *testing.T) {
 		t.Error("0 rps를 받아들였다")
 	}
 }
+
+func demoToken() string {
+	return DemoTokenPrefix + strings.Repeat("0", TokenLength-len(DemoTokenPrefix))
+}
+
+func setDemoEnv(t *testing.T, demo, base, ca, tok string) {
+	t.Helper()
+	t.Setenv("SAVETAX_DEMO", demo)
+	t.Setenv("SAVETAX_CONTEST_BASE_URL", base)
+	t.Setenv("SAVETAX_DEMO_CA", ca)
+	t.Setenv("SAVETAX_TOKEN", tok)
+}
+
+func TestDemoModeRedirectsAllServicesToLoopback(t *testing.T) {
+	setDemoEnv(t, "1", "https://127.0.0.1:18443/", "ca.pem", demoToken())
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Demo || c.DemoCAFile != "ca.pem" {
+		t.Fatalf("데모 모드가 켜지지 않았다: %+v", c)
+	}
+	for _, u := range []string{c.ContestBaseURL, c.DataBaseURL, c.DatasetBaseURL} {
+		if u != "https://127.0.0.1:18443" {
+			t.Errorf("데모 모드인데 다른 주소가 남았다: %s", u)
+		}
+	}
+}
+
+func TestDemoModeRefusesUnsafeSettings(t *testing.T) {
+	cases := []struct {
+		name                string
+		demo, base, ca, tok string
+	}{
+		{"데모 아닌데 주소 변경", "", "https://127.0.0.1:18443", "", ""},
+		{"데모 아닌데 인증서", "", "", "ca.pem", ""},
+		{"루프백이 아닌 주소", "1", "https://hackathon.example.com", "ca.pem", demoToken()},
+		{"평문 http", "1", "http://127.0.0.1:18443", "ca.pem", demoToken()},
+		{"경로가 붙은 주소", "1", "https://127.0.0.1:18443/v1", "ca.pem", demoToken()},
+		{"인증서 없음", "1", "https://127.0.0.1:18443", "", demoToken()},
+		{"실제 형식 토큰", "1", "https://127.0.0.1:18443", "ca.pem", fakeToken()},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setDemoEnv(t, tc.demo, tc.base, tc.ca, tc.tok)
+			_, err := Load()
+			if err == nil {
+				t.Fatal("거절해야 한다")
+			}
+			if tc.tok != "" && strings.Contains(err.Error(), tc.tok) {
+				t.Errorf("오류 메시지에 토큰 원문이 들어 있다: %v", err)
+			}
+		})
+	}
+}
+
+func TestDemoModeAllowsEmptyTokenAndLocalhost(t *testing.T) {
+	setDemoEnv(t, "1", "https://localhost:18443", "ca.pem", "")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ContestBaseURL != "https://localhost:18443" {
+		t.Errorf("주소 = %s", c.ContestBaseURL)
+	}
+}

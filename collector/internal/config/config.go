@@ -3,7 +3,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -16,10 +19,12 @@ const (
 	DatasetBaseURL = "https://savetax-dataset.reform-dev-infra.workers.dev"
 
 	// 서버 오류 메시지 기준: savetax_로 시작하는 56자(영숫자·_·-).
-	TokenPrefix    = "savetax_"
-	TokenLength    = 56
-	defaultUA      = "Mozilla/5.0 (savetax-lab)"
-	defaultDataDir = "./data"
+	TokenPrefix = "savetax_"
+	TokenLength = 56
+	// 데모 토큰 접두어. 데모 모드(studio/fakeserver)에서는 이 접두어 토큰만 받는다.
+	DemoTokenPrefix = "savetax_demo_"
+	defaultUA       = "Mozilla/5.0 (savetax-lab)"
+	defaultDataDir  = "./data"
 )
 
 var tokenRe = regexp.MustCompile(`^savetax_[A-Za-z0-9_-]+$`)
@@ -37,6 +42,13 @@ type Config struct {
 	ContestBaseURL string
 	DataBaseURL    string
 	DatasetBaseURL string
+
+	// Demo는 가짜 대회 서버(studio/fakeserver)에 붙는 데모 모드다(SAVETAX_DEMO=1). 대회 주소를 바꿀 수 있는 건
+	// 이 모드뿐이고, 루프백 https 주소와 데모 토큰만 허용한다 — 실제 토큰이 다른 곳으로 가지 않게 한다.
+	Demo bool
+	// DemoCAFile은 가짜 서버의 자체 서명 인증서(PEM)다. 데모 모드의 HTTP 클라이언트는 이것만 신뢰하므로
+	// 실제 대회·판매 사이트에는 TLS 단계에서 연결되지 않는다.
+	DemoCAFile string
 }
 
 // Load는 환경변수를 읽고 검증한다. 토큰이 없으면 Token=""로 두고,
@@ -68,7 +80,45 @@ func Load() (*Config, error) {
 			return nil, err
 		}
 	}
+	if err := c.loadDemo(); err != nil {
+		return nil, err
+	}
 	return c, nil
+}
+
+// loadDemo는 데모 모드 설정을 읽는다. 데모가 아닐 때 주소·인증서 설정이 있으면 거절한다
+// (실수로 실제 토큰을 다른 주소로 보내는 길을 만들지 않는다).
+func (c *Config) loadDemo() error {
+	base := clean(os.Getenv("SAVETAX_CONTEST_BASE_URL"))
+	ca := clean(os.Getenv("SAVETAX_DEMO_CA"))
+	if clean(os.Getenv("SAVETAX_DEMO")) != "1" {
+		if base != "" || ca != "" {
+			return errors.New("SAVETAX_CONTEST_BASE_URL·SAVETAX_DEMO_CA는 데모 모드(SAVETAX_DEMO=1)에서만 쓴다")
+		}
+		return nil
+	}
+	u, err := url.Parse(base)
+	if base == "" || err != nil || u.Scheme != "https" || !isLoopback(u.Hostname()) || strings.Trim(u.Path, "/") != "" || u.RawQuery != "" {
+		return fmt.Errorf("데모 모드의 SAVETAX_CONTEST_BASE_URL은 경로 없는 루프백 https 주소여야 한다(예: https://127.0.0.1:18443): %q", base)
+	}
+	if ca == "" {
+		return errors.New("데모 모드에는 SAVETAX_DEMO_CA(가짜 서버 인증서 PEM 경로)가 필요하다")
+	}
+	if c.Token != "" && !strings.HasPrefix(c.Token, DemoTokenPrefix) {
+		return fmt.Errorf("데모 모드에서는 데모 토큰(%s…)만 쓴다 — 실제 참가 토큰은 가짜 서버로 보내지 않는다", DemoTokenPrefix)
+	}
+	root := u.Scheme + "://" + u.Host
+	c.Demo, c.DemoCAFile = true, ca
+	c.ContestBaseURL, c.DataBaseURL, c.DatasetBaseURL = root, root, root
+	return nil
+}
+
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // ValidateToken은 토큰 형식만 본다. 오류 메시지에 토큰 원문을 넣지 않는다.

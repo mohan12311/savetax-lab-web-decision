@@ -21,6 +21,8 @@
 
 `go run ./cmd/savetax dataset [--verify | --force]`
 
+데모 모드(2부, `studio/README.md`): `SAVETAX_DEMO=1`일 때만 `SAVETAX_CONTEST_BASE_URL`(경로 없는 루프백 https)과 `SAVETAX_DEMO_CA`(가짜 서버 인증서)를 받는다. 토큰은 `savetax_demo_` 접두어만 받고, HTTP 클라이언트는 그 인증서만 신뢰한다(실서버와 TLS가 맺어지지 않는다). 데모가 아닐 때 두 변수가 있으면 시작하지 않는다.
+
 ## 산출물
 
 ```

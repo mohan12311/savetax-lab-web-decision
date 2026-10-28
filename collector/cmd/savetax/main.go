@@ -5,10 +5,13 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -101,6 +104,7 @@ func usage() {
 		fmt.Fprintf(os.Stderr, "  %-8s %s\n", c.name, c.summary)
 	}
 	fmt.Fprintln(os.Stderr, "\n환경변수: SAVETAX_TOKEN(필수: 인증 명령), SAVETAX_DATA_DIR, SAVETAX_*_RPS, SAVETAX_USER_AGENT")
+	fmt.Fprintln(os.Stderr, "데모 모드: SAVETAX_DEMO=1 + SAVETAX_CONTEST_BASE_URL(루프백 https) + SAVETAX_DEMO_CA + 데모 토큰(studio/README.md)")
 }
 
 // app은 명령들이 공유하는 설정·로거·리미터다. 리미터는 프로세스 안에서 이름별로 하나다.
@@ -125,17 +129,42 @@ func (a *app) bronzeRoot() string { return filepath.Join(a.cfg.DataDir, "bronze"
 func (a *app) stateDir() string   { return filepath.Join(a.cfg.DataDir, "state") }
 
 func (a *app) httpClient(service, base string, limiters ...string) (*httpx.Client, error) {
+	hc, err := a.demoHTTP()
+	if err != nil {
+		return nil, err
+	}
 	opt := httpx.Options{
-		Service:   service,
-		BaseURL:   base,
-		Token:     a.cfg.Token,
-		UserAgent: a.cfg.UserAgent,
-		Logger:    a.log,
+		Service:    service,
+		BaseURL:    base,
+		Token:      a.cfg.Token,
+		UserAgent:  a.cfg.UserAgent,
+		Logger:     a.log,
+		HTTPClient: hc,
 	}
 	for _, n := range limiters {
 		opt.Limiters = append(opt.Limiters, a.lim.Get(n))
 	}
 	return httpx.New(opt)
+}
+
+// demoHTTP는 데모 모드에서 가짜 서버 인증서(SAVETAX_DEMO_CA)만 신뢰하는 클라이언트다. 시스템 인증서를 쓰지 않으므로
+// 데모 중에는 실제 대회·판매 사이트와 TLS부터 맺어지지 않는다. 데모가 아니면 nil(httpx 기본 전송).
+func (a *app) demoHTTP() (*http.Client, error) {
+	if !a.cfg.Demo {
+		return nil, nil
+	}
+	pem, err := os.ReadFile(a.cfg.DemoCAFile)
+	if err != nil {
+		return nil, fmt.Errorf("데모 인증서: %w", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("데모 인증서 %s에서 PEM 인증서를 읽지 못했다", a.cfg.DemoCAFile)
+	}
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.Proxy = nil // 루프백만 쓴다
+	t.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	return &http.Client{Transport: t}, nil
 }
 
 func (a *app) contest() (*contest.Client, error) {

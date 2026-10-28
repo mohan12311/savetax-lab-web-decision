@@ -8,7 +8,9 @@ SAVETAX_TOKEN := $(_ENV_TOKEN)
 endif
 # 그래도 비어 있으면 macOS 키체인(service=savetax-lab, account=SAVETAX_TOKEN)에서 읽는다.
 # 토큰을 저장소 파일·명령줄에 두지 않기 위함. 키체인이 없거나 항목이 없으면 빈 값 그대로.
-ifeq ($(strip $(SAVETAX_TOKEN)),)
+# demo* 목표(2부 데모)만 부를 때는 키체인을 읽지 않는다.
+ifeq ($(filter-out demo%,$(MAKECMDGOALS))$(if $(MAKECMDGOALS),,x),)
+else ifeq ($(strip $(SAVETAX_TOKEN)),)
 SAVETAX_TOKEN := $(shell security find-generic-password -s savetax-lab -a SAVETAX_TOKEN -w 2>/dev/null)
 endif
 # 명령은 collector/·pipeline/ 안에서 돌므로 데이터 경로를 저장소 루트 기준 절대 경로로 고정한다.
@@ -19,7 +21,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: build check dataset silver candidates lookup facts found listing scrape probe preview submit revise preview-revise submit-status test
+.PHONY: build check dataset silver candidates lookup facts found listing scrape probe preview submit revise preview-revise submit-status test demo demo-serve demo-test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
 check:       ; $(GO) check
@@ -55,3 +57,8 @@ preview-revise: ; $(GO) submit --claim $(SAVETAX_DATA_DIR)/gold/claims/$(ID).jso
 # 응답을 못 받았거나 lint를 다시 볼 때. 예: make submit-status KEY=<Idempotency-Key>
 submit-status: ; $(GO) submit --status $(KEY)
 test:        ; cd collector && go test ./... && if [ -f ../pipeline/pyproject.toml ]; then cd ../pipeline && env -u SAVETAX_TOKEN uv run pytest; fi
+
+# --- 2부 데모(studio/): 합성 데이터 + 가짜 대회 서버·판매처. 실제 토큰·키체인·실서버를 쓰지 않는다 ---
+demo:        ; env -u SAVETAX_TOKEN studio/demo.sh run
+demo-serve:  ; env -u SAVETAX_TOKEN studio/demo.sh serve
+demo-test:   ; cd studio/fakeserver && go test ./... && cd ../synth && env -u SAVETAX_TOKEN uv run pytest -q && cd ../../collector && go test ./internal/config/

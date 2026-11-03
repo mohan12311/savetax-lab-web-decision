@@ -34,7 +34,7 @@ candidates:  ; $(PY) python -m savetax_pipeline.candidates $(if $(RETAIL),--reta
 lookup:      ; $(GO) lookup --from $(SAVETAX_DATA_DIR)/gold/$(or $(IDS),lookup_ids).txt $(ARGS)
 # 지정한 물품만 조회한다(첫 호출이 서버 스냅샷을 만들어 남에게도 보이는 신호가 된다 — 제출 직전 후보에만). 예: make facts ID=24883583 ARGS='--draft'
 facts:       ; $(GO) facts --id $(ID) $(ARGS)
-# 발견 상품 카드(남의 등록분 포함)를 끝까지 읽는다. 출처 분포·방법 파악용 — 남의 근거는 우리 근거로 쓰지 않는다(CLAUDE.md 규칙 2)
+# 발견 상품 카드(남의 등록분 포함)를 끝까지 읽는다. 출처 분포·방법 파악용 — 남의 근거는 우리 근거로 쓰지 않는다(docs/HACKATHON_CLAUDE.md 규칙 2)
 found:       ; $(GO) found $(ARGS)
 # 등재 상세(데이터 API, 예산 사용). 예: make listing ARGS='--id 002370143_1060000325' 또는 ARGS='--from 파일'
 listing:     ; $(GO) listing $(ARGS)

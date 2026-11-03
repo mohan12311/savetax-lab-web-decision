@@ -18,7 +18,7 @@ import (
 )
 
 // runFound는 발견 상품 카드 목록(found)을 cursor로 끝까지 읽어 bronze/contest/found에 쌓는다.
-// 남의 근거(링크·인용·가격)는 우리 근거로 쓰지 않는다(CLAUDE.md 규칙 2) — 출처 분포·방법 파악용이다.
+// 남의 근거(링크·인용·가격)는 우리 근거로 쓰지 않는다(docs/HACKATHON_CLAUDE.md 규칙 2) — 출처 분포·방법 파악용이다.
 func runFound(ctx context.Context, a *app, args []string) error {
 	fs := flag.NewFlagSet("found", flag.ContinueOnError)
 	status := fs.String("status", "", "checking | confirmed | held | unconfirmed | withdrawn (비우면 서버 기본)")
@@ -121,7 +121,7 @@ func foundPage(body []byte) (n int, next string, keys []string) {
 }
 
 // foundCounters는 제출마다 달린 공개 반증 목록을 bronze/contest/counterevidence에 쌓는다.
-// 반증 본문은 검토 기준 파악용이고, 거기 실린 링크·가격을 우리 근거로 옮기지 않는다(CLAUDE.md 규칙 2).
+// 반증 본문은 검토 기준 파악용이고, 거기 실린 링크·가격을 우리 근거로 옮기지 않는다(docs/HACKATHON_CLAUDE.md 규칙 2).
 func foundCounters(ctx context.Context, c *contest.Client, run *bronze.Run, sids []string) error {
 	if len(sids) == 0 {
 		return nil

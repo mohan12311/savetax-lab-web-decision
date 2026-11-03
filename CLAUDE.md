@@ -35,7 +35,7 @@
 collector/          1부 Go CLI(수집·조회·게이트·제출) + 데모 모드        collector/README.md
 pipeline/ sql/      1부 Python·DuckDB 정제(silver·gold)
 scripts/hackathon/  1부 후반 일회성 스크립트(실행한 그대로 보존한 기록)
-studio/             2부: synth/(합성 데이터) fakeserver/(가짜 대회 API·판매처) demo.sh   studio/README.md
+studio/             2부: synth/(합성 데이터) fakeserver/(가짜 대회 API·판매처) docs/(명세) demo.sh   studio/README.md
 docs/               WORKLOG.md(진행 기록) HACKATHON_CLAUDE.md(대회 당시 지침) ARCHITECTURE.md API.md RULES.md
 data/ studio/demo/  생성물·원문(gitignore)
 ```

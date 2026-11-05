@@ -62,6 +62,15 @@ def test_endpoints_and_judgment(server):
     assert e.value.code == 400
 
 
+def test_page_original_is_sandboxed(server):
+    base, run = server
+    with urllib.request.urlopen(f"{base}/api/runs/r1/cases/hard-01/page") as r:
+        body = r.read().decode()
+        csp = r.headers["Content-Security-Policy"]
+    assert "200×200×60mm" in body and r.headers["Content-Type"].startswith("text/html")
+    assert csp.startswith("sandbox") and "default-src 'none'" in csp
+
+
 def test_no_traversal_or_answer_file(server):
     base, run = server
     (run.parent.parent / "synth" / "cases.jsonl").exists()

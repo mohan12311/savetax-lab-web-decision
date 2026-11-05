@@ -16,9 +16,10 @@ def main() -> None:
     ap.add_argument("--data", type=Path, required=True)
     ap.add_argument("--port", type=int, default=18480)
     ap.add_argument("--static", type=Path, default=WEB_DIST)
+    ap.add_argument("--host", default="127.0.0.1", help="받을 주소(기본 루프백). 컨테이너 안에서만 0.0.0.0을 쓴다")
     a = ap.parse_args()
-    httpd = serve(a.runs, a.data, a.static, a.port)
-    print(f"검토 화면: http://127.0.0.1:{a.port}  (Ctrl-C로 끝)", flush=True)
+    httpd = serve(a.runs, a.data, a.static, a.port, a.host)
+    print(f"검토 화면: http://127.0.0.1:{a.port}  (받는 주소 {a.host}, Ctrl-C로 끝)", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

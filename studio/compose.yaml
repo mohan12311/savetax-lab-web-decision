@@ -1,0 +1,14 @@
+# 검토 화면을 Docker로 띄운다: make studio-docker → http://127.0.0.1:18480
+# 호스트 쪽 포트는 루프백(127.0.0.1)에만 연다. 데이터는 studio/demo(합성 데이터·실행 결과·사람 판정)를 마운트한다.
+services:
+  review:
+    build:
+      context: ..
+      dockerfile: studio/review/Dockerfile
+    image: savetax-studio-review:local
+    ports:
+      - "127.0.0.1:18480:18480"
+    volumes:
+      - ./demo:/data
+    environment: {}
+    restart: unless-stopped

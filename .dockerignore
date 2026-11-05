@@ -1,0 +1,12 @@
+# 이미지에는 검토 화면에 필요한 코드만 넣는다. 대회 원문·합성 데이터·실행 결과·비밀 값은 넣지 않는다.
+*
+!studio/schema/**
+!studio/sheet/src/**
+!studio/review/src/**
+!studio/web/**
+**/__pycache__
+**/.venv
+**/.pytest_cache
+studio/web/node_modules
+studio/web/dist
+studio/schema/tests

@@ -4,6 +4,7 @@
     GET  /api/runs/{run}/cases                   사건 목록(검토 대기열)
     GET  /api/runs/{run}/cases/{case}            답안지 + 판매 페이지 줄(사람 화면용, 숨은 줄·탐지된 줄 포함) + 조달 물품 + 판정
     PUT  /api/runs/{run}/cases/{case}/judgment   사람 판정 저장(judgment.schema.json) → <실행>/judgments/<case>.json
+    GET  /api/runs/{run}/cases/{case}/page       판매 페이지 보관본 HTML 원본(스크립트·외부 요청을 막는 CSP sandbox로)
     GET  /api/runs/{run}/scorecard               채점 결과(있으면)
     그 밖의 경로                                  웹 화면 정적 파일(studio/web/dist)
 
@@ -32,6 +33,7 @@ _ROUTES = [
     ("GET", re.compile(rf"^/api/runs/({_ID})/cases$"), "cases"),
     ("GET", re.compile(rf"^/api/runs/({_ID})/cases/({_ID})$"), "case"),
     ("PUT", re.compile(rf"^/api/runs/({_ID})/cases/({_ID})/judgment$"), "judge"),
+    ("GET", re.compile(rf"^/api/runs/({_ID})/cases/({_ID})/page$"), "page_html"),
     ("GET", re.compile(rf"^/api/runs/({_ID})/scorecard$"), "scorecard"),
 ]
 MAX_BODY = 64 * 1024
@@ -55,9 +57,15 @@ class Store:
         """실행이 쓴 합성 데이터(run.json의 data_dir, v1/v2). 없거나 사라졌으면 기본 데이터."""
         meta = json.loads((self._run(rid) / "run.json").read_text(encoding="utf-8"))
         d = meta.get("data_dir")
-        if not d or not (Path(d) / "tasks.jsonl").exists():
+        if not d:
             return self.data
-        return self._by_dir.setdefault(d, AgentData(Path(d)))
+        path = Path(d)
+        if not (path / "tasks.jsonl").exists():
+            # 컨테이너처럼 경로가 다른 곳에서 열면 기본 데이터 옆의 같은 이름 디렉터리(synth, synth-v2)를 쓴다
+            path = self.data.root.parent / path.name
+            if not (path / "tasks.jsonl").exists():
+                return self.data
+        return self._by_dir.setdefault(str(path), AgentData(path))
 
     def _run(self, rid: str) -> Path:
         d = (self.runs_root / rid).resolve()
@@ -81,8 +89,18 @@ class Store:
             meta = json.loads(d.read_text(encoding="utf-8"))
             run = d.parent
             judged = len(list((run / "judgments").glob("*.json"))) if (run / "judgments").exists() else 0
+            data_name = Path(meta.get("data_dir") or "synth").name
+            pending = 0
+            for sp in run.glob("*.json"):
+                if sp.name in ("run.json", "scorecard.json"):
+                    continue
+                sh = json.loads(sp.read_text(encoding="utf-8"))
+                if sh["routing"]["to"] == "human" and not (run / "judgments" / sp.name).exists():
+                    pending += 1
             out.append({**{k: meta.get(k) for k in ("run_id", "model", "effort", "prompt_version", "started_at", "finished_at", "cost_usd")},
-                        "cases": len(meta.get("cases", [])), "judged": judged, "has_scorecard": (run / "scorecard.json").exists()})
+                        "variant": "v2" if data_name.endswith("v2") else "v1",
+                        "cases": len(meta.get("cases", [])), "judged": judged, "pending": pending,
+                        "has_scorecard": (run / "scorecard.json").exists()})
         return out
 
     def cases(self, rid: str) -> list[dict[str, Any]]:
@@ -116,6 +134,13 @@ class Store:
             "judgment": self._judgment(rid, cid),
         }
 
+    def page_html(self, rid: str, cid: str) -> bytes:
+        """판매 페이지 보관본 원본. 믿을 수 없는 글이므로 핸들러가 CSP sandbox 헤더를 붙여 내준다."""
+        self._sheet(rid, cid)
+        data = self._data_for(rid)
+        html, _ = data.page(data.task(cid)["sku"])
+        return html.encode("utf-8")
+
     def judge(self, rid: str, cid: str, body: dict[str, Any]) -> dict[str, Any]:
         self._sheet(rid, cid)
         j = {"schema_version": "judgment/v1", "case_id": cid, "verdict": body.get("verdict"), "label": body.get("label"),
@@ -145,9 +170,11 @@ def make_handler(store: Store, static_dir: Path | None):
         def log_message(self, fmt: str, *args: Any) -> None:  # 조용히
             pass
 
-        def _send(self, status: int, body: bytes, ctype: str) -> None:
+        def _send(self, status: int, body: bytes, ctype: str, csp: str | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", ctype)
+            if csp:
+                self.send_header("Content-Security-Policy", csp)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Cache-Control", "no-store")
@@ -164,6 +191,10 @@ def make_handler(store: Store, static_dir: Path | None):
                     hit = rx.match(path)
                     if hit and m == method:
                         args = hit.groups()
+                        if name == "page_html":
+                            # 판매 페이지 글은 데이터다: 스크립트·폼·외부 요청(이미지·글꼴 포함)을 막고 그대로 보여 준다
+                            return self._send(200, store.page_html(*args), "text/html; charset=utf-8",
+                                              csp="sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:")
                         if name == "judge":
                             n = int(self.headers.get("Content-Length") or 0)
                             if n > MAX_BODY:
@@ -202,8 +233,9 @@ def make_handler(store: Store, static_dir: Path | None):
     return Handler
 
 
-def serve(runs_root: Path, data_dir: Path, static_dir: Path | None, port: int = 18480) -> ThreadingHTTPServer:
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(Store(runs_root, data_dir), static_dir))
+def serve(runs_root: Path, data_dir: Path, static_dir: Path | None, port: int = 18480, host: str = "127.0.0.1") -> ThreadingHTTPServer:
+    """기본은 루프백만. 컨테이너 안에서는 0.0.0.0으로 받고, 호스트 쪽 공개는 compose가 127.0.0.1로 묶는다."""
+    httpd = ThreadingHTTPServer((host, port), make_handler(Store(runs_root, data_dir), static_dir))
     return httpd
 
 

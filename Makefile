@@ -21,7 +21,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
-.PHONY: studio-test studio-baseline studio-run studio-grade studio-web studio-review
+.PHONY: studio-test studio-baseline studio-run studio-grade studio-web studio-review studio-docker studio-docker-down
 .PHONY: build check dataset silver candidates lookup facts found listing scrape probe preview submit revise preview-revise submit-status test demo demo-serve demo-test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
@@ -113,3 +113,10 @@ studio-web:
 # 웹 검토 화면: http://127.0.0.1:18480 (루프백만)
 studio-review: studio-web
 	cd studio/review && $(STUDIO_PY) python -m studio_review --runs $(STUDIO_RUNS) --data $(STUDIO_SYNTH)
+
+# 검토 화면을 Docker로: http://127.0.0.1:18480 (호스트 루프백만). studio/demo를 마운트한다
+studio-docker:
+	docker compose -f studio/compose.yaml up -d --build
+	@echo "검토 화면: http://127.0.0.1:18480"
+studio-docker-down:
+	docker compose -f studio/compose.yaml down

@@ -12,8 +12,10 @@ export interface RunSummary {
   started_at: string | null;
   finished_at: string | null;
   cost_usd: string | null;
+  variant: "v1" | "v2";
   cases: number;
   judged: number;
+  pending: number;
   has_scorecard: boolean;
 }
 

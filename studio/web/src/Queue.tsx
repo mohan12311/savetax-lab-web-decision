@@ -1,59 +1,74 @@
-import { useState } from "react";
-import { LABEL_KO, type CaseSummary } from "./api";
+import type { CaseSummary } from "./api";
 
-type Filter = "pending" | "human" | "auto" | "done" | "all";
+export type Filter = "pending" | "done" | "auto" | "all";
 const FILTERS: [Filter, string][] = [
   ["pending", "검토 대기"],
-  ["auto", "자동 통과"],
   ["done", "판정함"],
+  ["auto", "자동 통과"],
   ["all", "전체"],
 ];
 
-function match(c: CaseSummary, f: Filter): boolean {
+export function matchFilter(c: CaseSummary, f: Filter): boolean {
   switch (f) {
     case "pending":
       return c.routing === "human" && !c.verdict;
-    case "human":
-      return c.routing === "human";
-    case "auto":
-      return c.routing === "auto";
     case "done":
       return !!c.verdict;
+    case "auto":
+      return c.routing === "auto";
     default:
       return true;
   }
 }
 
-const VERDICT_KO = { approve: "승인", reject: "반려", edit: "수정" } as const;
+/** 먼저 볼 사건이 앞에 오게: AI 지시문 > 보류 > 확인이 필요한 줄·부가세·읽지 않은 가격 > N배만 > 자동 통과 */
+export function priority(c: CaseSummary): number {
+  if (c.rules.includes(1)) return 0;
+  if (c.rules.includes(3)) return 1;
+  if (c.rules.some((r) => [4, 5, 6, 8, 9, 11].includes(r))) return 2;
+  if (c.rules.includes(7)) return 3;
+  return 4;
+}
 
-export default function Queue({ cases, selected, onSelect }: { cases: CaseSummary[]; selected?: string; onSelect: (id: string) => void }) {
-  const [filter, setFilter] = useState<Filter>("pending");
-  const shown = cases.filter((c) => match(c, filter));
+const CHIP: Record<number, [string, string]> = {
+  1: ["AI 지시문", "danger"],
+  3: ["보류", "warn"],
+  4: ["확인할 줄", "warn"],
+  5: ["부가세 표기 없음", "warn"],
+  6: ["결론 이견", "warn"],
+  8: ["속성 누락", "warn"],
+  9: ["단정 표현", "warn"],
+  11: ["읽지 않은 가격", "warn"],
+};
+const VERDICT_KO = { approve: "맞음", reject: "결론 반려", edit: "라벨 고침" } as const;
+
+export default function Queue({ cases, ordered, filter, onFilter, selected, onSelect }: {
+  cases: CaseSummary[]; ordered: CaseSummary[]; filter: Filter; onFilter: (f: Filter) => void; selected?: string; onSelect: (id: string) => void;
+}) {
   return (
     <aside className="queue">
       <div className="filters">
         {FILTERS.map(([f, name]) => (
-          <button key={f} className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>
-            {name} <span className="count">{cases.filter((c) => match(c, f)).length}</span>
+          <button key={f} className={filter === f ? "on" : ""} onClick={() => onFilter(f)}>
+            {name} <span className="count">{cases.filter((c) => matchFilter(c, f)).length}</span>
           </button>
         ))}
       </div>
       <ul>
-        {shown.map((c) => (
+        {ordered.map((c) => (
           <li key={c.case_id} className={c.case_id === selected ? "sel" : ""} onClick={() => onSelect(c.case_id)}>
+            <div className={`qtitle ${c.conclusion === "n_times" ? "ntimes" : ""}`}>{c.title}</div>
             <div className="qrow">
               <span className="cid">{c.case_id}</span>
-              {c.danger && <span className="chip danger" title="AI에게 하는 말이 있다">danger</span>}
-              {c.conclusion === "n_times" && <span className="chip warn">N배</span>}
-              {c.unfolded > 0 && <span className="chip" title="객관 신호가 실패해 펼친 줄">펼침 {c.unfolded}</span>}
-              {c.verdict && <span className="chip ok">{VERDICT_KO[c.verdict]}</span>}
+              {c.rules.filter((r) => CHIP[r]).map((r) => <span key={r} className={`chip ${CHIP[r][1]}`}>{CHIP[r][0]}</span>)}
+              {c.routing === "auto" && <span className="chip">자동 통과</span>}
+              {c.verdict && <span className="chip ok">✓ {VERDICT_KO[c.verdict]}</span>}
             </div>
-            <div className="qtitle">{c.title}</div>
-            <div className="muted small">{LABEL_KO[c.label]} · {c.routing === "auto" ? "자동 통과" : `사람(${c.rules.join(", ")})`}</div>
           </li>
         ))}
-        {shown.length === 0 && <li className="muted">없다</li>}
+        {ordered.length === 0 && <li className="muted empty-li">{filter === "pending" ? "검토 대기가 없습니다" : "없습니다"}</li>}
       </ul>
+      <div className="keys small muted">단축키: <kbd>Y</kbd> 맞음 · <kbd>N</kbd> 틀림 · <kbd>1</kbd>~<kbd>4</kbd> 라벨 · <kbd>Enter</kbd> 저장 · <kbd>O</kbd> 원본 화면 · <kbd>J</kbd>/<kbd>K</kbd> 다음/이전</div>
     </aside>
   );
 }

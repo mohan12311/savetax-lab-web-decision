@@ -26,6 +26,7 @@ make studio-baseline   # LLM 없는 규칙 기준선으로 51건 실행 → 채�
 make studio-run CASES=hard-01,hard-04   # 실제 LLM API(비용). 기본 OpenAI gpt-6.1-terra, MODEL=gpt-6.1-sol·claude-…도 된다. 키는 키체인 account `SAVETAX_STUDIO_OPENAI_KEY`
 make studio-grade [RUN=<실행 ID>]   # 채점: scorecard.json·scorecard.md·relaxation-records.jsonl
 make studio-review     # 웹 화면 빌드 후 http://127.0.0.1:18480 (루프백만)
+make studio-docker     # 검토 화면을 Docker로(이미지에는 코드만, studio/demo를 /data로 마운트, 호스트 127.0.0.1만). 끄기: make studio-docker-down
 ```
 
 필요한 것은 Go, uv, Node.js입니다. 명세는 [`docs/answer-sheet.md`](docs/answer-sheet.md)(답안지·도구·확인·처리 규칙·구현 구성)와 [`docs/scoring.md`](docs/scoring.md)(평가 지표)에 있습니다.

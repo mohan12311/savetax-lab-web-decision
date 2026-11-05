@@ -44,6 +44,7 @@
 make studio-baseline VARIANT=v2   # LLM 없이 전체 흐름(비용 0)
 make studio-run VARIANT=v2        # 실제 LLM(OpenAI 키: 키체인 service=savetax-lab, account=SAVETAX_STUDIO_OPENAI_KEY)
 make studio-review                # 검토 화면 http://127.0.0.1:18480
+make studio-docker                # 같은 화면을 Docker로(호스트 127.0.0.1:18480, studio/demo 마운트). 끄기: make studio-docker-down
 ```
 
 ## 대회 규칙 요약

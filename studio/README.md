@@ -22,7 +22,7 @@ studio/synth ──▶ tasks.jsonl(정답 없음) ─┐                        
 
 ```bash
 make studio-test       # Go 계산기 + Python 6개 패키지 + 웹 타입 검사
-make studio-baseline   # LLM 없는 규칙 기준선으로 51건 실행 → 채점(비용 0, 몇 초)
+make studio-baseline   # LLM 없는 규칙 기준선으로 51건 실행 → 채점(비용 0, 몇 초). VARIANT=v2면 다양한 표기 55건
 make studio-run CASES=hard-01,hard-04   # 실제 LLM API(비용). 기본 OpenAI gpt-6.1-terra, MODEL=gpt-6.1-sol·claude-…도 된다. 키는 키체인 account `SAVETAX_STUDIO_OPENAI_KEY`
 make studio-grade [RUN=<실행 ID>]   # 채점: scorecard.json·scorecard.md·relaxation-records.jsonl
 make studio-review     # 웹 화면 빌드 후 http://127.0.0.1:18480 (루프백만)
@@ -45,7 +45,7 @@ make studio-review     # 웹 화면 빌드 후 http://127.0.0.1:18480 (루프백
 - **판매 페이지 글은 데이터입니다.** AI에게 시키는 꼴의 글은 코드가 탐지해 에이전트 입력에서 빼고, 그 사건은 자동 통과에서 늘 빠집니다.
 - **채점기는 에이전트 코드와 생성기를 가져다 쓰지 않습니다.** 같은 함수끼리 비교하면 오류가 0건으로 보이기 때문입니다.
 
-규칙 기준선의 점수(시드 7, 51건): 0건 조건 통과, 결론 정밀도 21/23 · 재현율 21/22, 라벨 48/51, 비교 단가 정확 일치 29/29. 규칙만으로 이만큼 맞힌다는 것은 **합성 페이지의 표기가 너무 고르다**는 뜻입니다. 기준선이 틀린 건은 판단이 필요한 hard-01(허용 오차), hard-03(투수/불투수), hard-09(리퍼비시)입니다. LLM 에이전트의 값어치는 이 차이와, 표기가 제각각인 실데이터에서 보여야 합니다.
+결과(시드 7): 고른 표기(v1 51건)에서는 규칙 기준선도 라벨 48/51을 맞혀 데이터가 쉽다는 것을 먼저 확인했습니다. 그래서 같은 사례를 다양한 표기로 그린 **v2**(55건, 어려운 사례 4개 추가)를 만들었고, 여기서 기준선은 라벨 13/55로 무너지고 gpt-6.1-terra는 55/55, 결론 정밀도·재현율 25/25를 유지했습니다(비용 $0.46). 표 전체와 해석은 루트 [`README.md`](../README.md) 「2부」 절에 있습니다.
 
 ## 데모의 바닥(1부 제출 흐름 재현)
 

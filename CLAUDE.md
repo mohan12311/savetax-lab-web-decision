@@ -19,7 +19,7 @@
 ## 계속 지키는 규칙
 
 1. **근거를 지어내지 않는다.** 실데이터의 가격·인용·관측일은 실제로 받아 보관한 페이지에서만 만든다. 합성 데이터의 정답은 생성기(`studio/synth`)가 정하고, LLM은 정답을 만들지 않는다.
-2. **비밀 값.** 참가 토큰(`SAVETAX_TOKEN`), 네이버 키, `ANTHROPIC_API_KEY`는 환경변수나 macOS 키체인(`service=savetax-lab`)에서만 읽는다. 코드, 로그, 커밋, 명령줄, URL에 넣지 않는다.
+2. **비밀 값.** 참가 토큰(`SAVETAX_TOKEN`), 네이버 키, 2부 LLM 키(`SAVETAX_STUDIO_OPENAI_KEY`, `SAVETAX_STUDIO_ANTHROPIC_KEY`)는 환경변수나 macOS 키체인(`service=savetax-lab`)에서만 읽는다. LLM 키는 전용 이름으로만 읽고 전역 `OPENAI_API_KEY`·`ANTHROPIC_API_KEY`로 넘어가지 않는다. 코드, 로그, 커밋, 명령줄, URL에 넣지 않는다.
 3. **실서버는 사용자가 요청할 때만 부른다.** 대회가 끝났다. `hackathon.savetax.now`·`api.savetax.now`·`mcp.savetax.now`와 판매 사이트에는 사용자가 요청할 때만 요청을 보낸다(예: 확정 결과 확인 `make check`). 2부는 가짜 서버만 쓴다.
 4. **데모 안전장치를 약하게 만들지 않는다.**
    - 1부 CLI의 데모 모드는 `SAVETAX_DEMO=1`일 때만 켜지고, 루프백 https 주소, `savetax_demo_` 토큰, 데모 인증서만 받는다.

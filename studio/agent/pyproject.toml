@@ -1,0 +1,31 @@
+[project]
+name = "studio-agent"
+version = "0.1.0"
+description = "savetax-lab 2부 에이전트 실행기(Claude API 수동 도구 루프 + 사건별 MCP 도구 서버 + 답안지 조립)"
+requires-python = ">=3.12"
+dependencies = [
+    "studio-sheet",
+    "studio-schema",
+    "anthropic>=1.0",
+    "mcp>=2.3",
+    "openai>=1.0",
+]
+
+[tool.uv.sources]
+studio-sheet = { path = "../sheet", editable = true }
+studio-schema = { path = "../schema", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/studio_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

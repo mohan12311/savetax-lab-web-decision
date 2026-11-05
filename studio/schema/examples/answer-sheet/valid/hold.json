@@ -1,0 +1,202 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "hold-example",
+ "item_id": "SYN9001",
+ "page_url": "https://127.0.0.1:18444/item/K90001",
+ "read_mode": "static",
+ "label": "hold",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-3",
+   "result": "within_tolerance",
+   "confidence": 0.7,
+   "required": true,
+   "check": {
+    "pass": false,
+    "signals": [
+     "judgment: 허용 오차 안은 사람이 본다"
+    ]
+   },
+   "runs": null,
+   "folded": false
+  },
+  {
+   "attribute": "두께",
+   "procurement": "ev-1",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-2",
+   "seller": "ev-5",
+   "result": "same",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-9",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.9,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "9900",
+    "ev": "ev-6"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-7"
+   },
+   "sale_unit": {
+    "value": "㎡",
+    "ev": "ev-8"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-8"
+   }
+  },
+  "llm": {
+   "formula": "ceil(9900 × 1.1)",
+   "benchmark_krw": "10890"
+  },
+  "code": null,
+  "check": {
+   "status": "not_applicable",
+   "recomputed": null,
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "198×198×60mm"
+  },
+  "ev-2": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "인조화강블록"
+  },
+  "ev-3": {
+   "source": "page",
+   "line": 4,
+   "text": "200×200×60mm",
+   "hidden": false
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 6,
+   "text": "60T",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "page",
+   "line": 5,
+   "text": "인조화강블록 투수",
+   "hidden": false
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 7,
+   "text": "9,900원",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 7,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 8,
+   "text": "판매 단위: ㎡",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "HB-X1960"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "hold",
+ "title": "판단 보류",
+ "title_review": null,
+ "reason": "규격 {ev-1}과 {ev-3}은 한 변이 1% 다르지만 종류·두께·투수 여부가 같아 동급으로 봤다.",
+ "hold_reason": "규격이 1% 다른데 허용 오차인지 판단하지 못했다 {ev-1} {ev-3}",
+ "hold_rows": [
+  "규격"
+ ],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 3,
+    "text": "라벨이 판단 보류다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "model": "example",
+  "prompt_version": "example",
+  "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "split_rule": "lines-v1",
+  "category": "보차도용콘크리트블록",
+  "runs": 1,
+  "tool_calls": 12,
+  "tokens_in": 0,
+  "tokens_out": 0,
+  "cache_read_tokens": 0,
+  "cost_usd": "0",
+  "elapsed_ms": 0,
+  "started_at": "2026-11-05T00:00:00Z",
+  "error": null
+ }
+}

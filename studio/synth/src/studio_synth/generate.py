@@ -4,7 +4,8 @@
     <out>/items.json           가짜 대회 items/{item_id} 응답 모양 + lookup_state   ← 가짜 서버가 읽는다
     <out>/shop/pages.json      판매처 페이지 목록                                    ← 가짜 서버가 읽는다
     <out>/shop/html/<sku>.html 판매처 페이지 원문                                    ← 가짜 서버가 읽는다
-    <out>/cases.jsonl          정답(라벨·함정·기대 비교 단가·해야 할 일)             ← 평가만 읽는다(서버·에이전트 금지)
+    <out>/cases.jsonl          정답(라벨·함정·기대 비교 단가·해야 할 일·읽은 값·차이 속성) ← 평가만 읽는다(서버·에이전트 금지)
+    <out>/tasks.jsonl          작업 목록(사건 ID·물품·판매 페이지 짝만, 정답 없음)  ← 에이전트가 읽는다
     <out>/claims/<item>.json   정답에서 만든 참조 본문(데모 흐름 확인용)
     <out>/claims/index.json    참조 본문 목록과 기대 결과(pass | blocked:gap)
 
@@ -154,7 +155,7 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
     assert len(set(ids)) == len(ids) and len(set(skus)) == len(skus), "물품번호·SKU가 겹친다"
     prepare_out(out)
 
-    items, pages, rows, claims_index = [], [], [], []
+    items, pages, rows, claims_index, tasks = [], [], [], [], []
     for c in cases:
         facts = facts_for(c, rng)
         items.append(item_json(c, facts))
@@ -163,6 +164,7 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
         (out / "shop" / html_file).write_text(page_html(c.offer), encoding="utf-8")
         pages.append({"sku": c.offer.sku, "path": c.offer.path, "render": c.offer.render, "title": c.offer.title,
                       "vat_included": c.offer.vat_included if c.offer.price_krw is not None else None, "html_file": html_file})
+        tasks.append({"case_id": c.case_id, "item_id": c.product.item_id, "sku": c.offer.sku, "page_url": shop_base + c.offer.path})
         b = c.benchmark_krw
         rows.append({
             "case_id": c.case_id, "item_id": c.product.item_id, "sku": c.offer.sku, "page_url": shop_base + c.offer.path,
@@ -172,6 +174,10 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
                 "gap_pass": c.gap_pass,
                 "amount_krw": None if c.amount_krw is None else str(c.amount_krw),
                 "action": c.action,
+            },
+            "truth": {
+                "read": c.truth_read,
+                "diffs": None if c.diffs is None else [{"attribute": a, "kind": k} for a, k in c.diffs],
             },
             "note": c.note,
         })
@@ -184,6 +190,7 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
     dump(out / "items.json", items)
     dump(out / "shop" / "pages.json", pages)
     dump(out / "claims" / "index.json", claims_index)
+    (out / "tasks.jsonl").write_text("".join(json.dumps(t, ensure_ascii=False) + "\n" for t in tasks), encoding="utf-8")
     (out / "cases.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
 
     files = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json")

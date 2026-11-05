@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://savetax-lab.local/schema/agent-answer.schema.json",
+  "title": "에이전트 답 v1",
+  "description": "에이전트(LLM)가 submit_answer 도구로 내는 부분. 실행기가 여기에 코드 계산·확인·처리 결정을 더해 답안지(answer-sheet.schema.json)를 만든다. 값은 직접 쓰지 않고 근거 ID로 가리킨다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["label", "rows", "price", "reason", "hold_reason", "hold_rows"],
+  "properties": {
+    "label": { "$ref": "answer-sheet.schema.json#/$defs/label" },
+    "rows": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "answer-sheet.schema.json#/$defs/agent_row" },
+      "description": "대조표. 필수 속성 목록의 속성은 모두 넣고, 필요하면 줄을 더한다"
+    },
+    "price": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "llm"],
+      "properties": {
+        "read": { "oneOf": [{ "type": "null" }, { "$ref": "answer-sheet.schema.json#/$defs/read_values" }], "description": "가격을 읽을 수 없으면 null" },
+        "llm": { "oneOf": [{ "type": "null" }, { "$ref": "answer-sheet.schema.json#/$defs/llm_calc" }] }
+      }
+    },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1000, "description": "판정 이유. 값은 {ev-N}으로 가리킨다" },
+    "hold_reason": { "type": ["string", "null"], "maxLength": 1000, "description": "label이 hold일 때만 쓴다" },
+    "hold_rows": { "type": "array", "items": { "type": "string" }, "description": "보류의 원인이 된 대조표 속성" }
+  }
+}

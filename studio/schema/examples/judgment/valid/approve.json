@@ -1,0 +1,12 @@
+{
+ "schema_version": "judgment/v1",
+ "case_id": "hard-01",
+ "verdict": "approve",
+ "label": null,
+ "rows": {
+  "규격": "agree"
+ },
+ "note": "1% 차이는 같은 물건으로 본다.",
+ "reviewer": "reviewer-1",
+ "reviewed_at": "2026-11-05T05:00:00Z"
+}

@@ -10,3 +10,6 @@ collector/bin/
 *.zip
 .omc/
 /studio/demo/
+# 2부 웹 화면 빌드 산출물
+studio/web/node_modules/
+studio/web/dist/

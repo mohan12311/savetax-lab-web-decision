@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://savetax-lab.local/schema/answer-sheet.schema.json",
+  "title": "답안지 v1",
+  "description": "사건(조달 물품 하나 ↔ 판매 페이지 하나)마다 실행기가 쓰는 답안지. 명세: studio/docs/answer-sheet.md. 금액은 정수 원 십진 문자열이다(float 금지). 칸 사이의 규칙(근거 ID가 evidence에 있는가 등)은 확인 코드(studio/sheet)가 맡는다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "item_id", "page_url", "read_mode", "label", "rows", "price", "evidence", "warnings", "checks", "conclusion", "title", "title_review", "reason", "hold_reason", "hold_rows", "routing", "repeats", "run"],
+  "properties": {
+    "schema_version": { "const": "answer-sheet/v1" },
+    "case_id": { "type": "string", "minLength": 1 },
+    "item_id": { "type": "string", "minLength": 1 },
+    "page_url": { "type": "string", "minLength": 1 },
+    "read_mode": { "enum": ["static", "rendered"] },
+    "label": { "$ref": "#/$defs/label" },
+    "rows": { "type": "array", "items": { "$ref": "#/$defs/row" } },
+    "price": { "$ref": "#/$defs/price" },
+    "evidence": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/evidence_id" },
+      "additionalProperties": { "$ref": "#/$defs/evidence" }
+    },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/warning" } },
+    "checks": { "$ref": "#/$defs/case_checks" },
+    "conclusion": { "enum": ["n_times", "nothing_to_flag", "hold"], "description": "n_times = 시중가 대비 N배. 라벨과 코드의 가격 차이 계산으로 정해진다" },
+    "title": { "type": "string" },
+    "title_review": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/title_review" }]
+    },
+    "reason": { "type": "string" },
+    "hold_reason": { "type": ["string", "null"] },
+    "hold_rows": { "type": "array", "items": { "type": "string" } },
+    "routing": { "$ref": "#/$defs/routing" },
+    "repeats": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repeats" }]
+    },
+    "run": { "$ref": "#/$defs/run" }
+  },
+  "$defs": {
+    "krw": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "description": "정수 원 십진 문자열" },
+    "usd": { "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$", "description": "달러 십진 문자열" },
+    "ratio_text": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.[0-9]$", "description": "배율, 소수 첫째 자리까지 내림" },
+    "units": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(/[0-9]+(\\.[0-9]+)?)?$", "description": "판매 단위 1개가 조달 단위 몇 개인가(예: 1, 20, 1/25)" },
+    "evidence_id": { "type": "string", "pattern": "^ev-[1-9][0-9]*$" },
+    "evidence_ref": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/evidence_id" }] },
+    "label": {
+      "enum": ["same_model", "equivalent", "different", "insufficient", "hold"],
+      "description": "같은 모델 · 동급 · 다른 물건 · 근거 부족 · 판단 보류"
+    },
+    "row_result": {
+      "enum": ["same", "within_tolerance", "different", "not_on_page"],
+      "description": "같음 · 허용 오차 안 · 다름 · 페이지에 없음(채점 명세 3.6절의 차이 종류와 같은 어휘)"
+    },
+    "agent_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attribute", "procurement", "seller", "result", "confidence"],
+      "properties": {
+        "attribute": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "procurement": { "$ref": "#/$defs/evidence_ref", "description": "조달 물품 쪽 값의 근거 ID" },
+        "seller": { "$ref": "#/$defs/evidence_ref", "description": "판매 페이지 쪽 값의 근거 ID. 페이지에 없으면 null" },
+        "result": { "$ref": "#/$defs/row_result" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "자기 보고 확신도(참고값)" }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attribute", "required", "procurement", "seller", "result", "confidence", "check", "runs", "folded"],
+      "properties": {
+        "attribute": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean", "description": "품목별 필수 속성 목록에 있는 줄인가(코드)" },
+        "procurement": { "$ref": "#/$defs/evidence_ref" },
+        "seller": { "$ref": "#/$defs/evidence_ref" },
+        "result": { "$ref": "#/$defs/row_result" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "check": { "$ref": "#/$defs/check" },
+        "runs": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/agreement" }] },
+        "folded": { "type": "boolean" }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "signals"],
+      "properties": {
+        "pass": { "type": "boolean" },
+        "signals": { "type": "array", "items": { "type": "string" }, "description": "통과하지 못한 객관 신호의 이름과 설명" }
+      }
+    },
+    "agreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "agree"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 1 },
+        "agree": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "read_value_krw": {
+      "type": "object", "additionalProperties": false, "required": ["value", "ev"],
+      "properties": { "value": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/krw" }] }, "ev": { "$ref": "#/$defs/evidence_ref" } }
+    },
+    "read_value_vat": {
+      "type": "object", "additionalProperties": false, "required": ["value", "ev"],
+      "properties": { "value": { "enum": ["included", "excluded", "not_stated"] }, "ev": { "$ref": "#/$defs/evidence_ref" } }
+    },
+    "read_value_text": {
+      "type": "object", "additionalProperties": false, "required": ["value", "ev"],
+      "properties": { "value": { "type": ["string", "null"] }, "ev": { "$ref": "#/$defs/evidence_ref" } }
+    },
+    "read_value_units": {
+      "type": "object", "additionalProperties": false, "required": ["value", "ev"],
+      "properties": { "value": { "$ref": "#/$defs/units" }, "ev": { "$ref": "#/$defs/evidence_ref" } }
+    },
+    "read_values": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sale_price", "vat", "sale_unit", "conversion"],
+      "description": "LLM이 읽은 값. 값마다 근거 ID를 단다",
+      "properties": {
+        "sale_price": { "$ref": "#/$defs/read_value_krw" },
+        "vat": { "$ref": "#/$defs/read_value_vat" },
+        "sale_unit": { "$ref": "#/$defs/read_value_text" },
+        "conversion": { "$ref": "#/$defs/read_value_units", "description": "판매 단위 1개가 조달 단위 몇 개인가. 같은 단위면 \"1\"" }
+      }
+    },
+    "llm_calc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formula", "benchmark_krw"],
+      "properties": {
+        "formula": { "type": "string", "minLength": 1, "maxLength": 300, "description": "예: ceil(400 × 25 × 1.1)" },
+        "benchmark_krw": { "$ref": "#/$defs/krw" }
+      }
+    },
+    "code_calc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["benchmark_krw", "benchmark_alt_krw", "vat_assumption", "p_krw", "ratio", "gap_pass", "gap_pass_alt", "amount_krw"],
+      "properties": {
+        "benchmark_krw": { "$ref": "#/$defs/krw" },
+        "benchmark_alt_krw": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/krw" }], "description": "부가세 표기가 없을 때 별도 가정의 비교 단가" },
+        "vat_assumption": { "enum": ["stated", "assumed_included"] },
+        "p_krw": { "$ref": "#/$defs/krw", "description": "납품 단가 P(에이전트에게는 보여 주지 않는다)" },
+        "ratio": { "$ref": "#/$defs/ratio_text" },
+        "gap_pass": { "type": "boolean" },
+        "gap_pass_alt": { "type": ["boolean", "null"] },
+        "amount_krw": { "$ref": "#/$defs/krw" }
+      }
+    },
+    "price_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recomputed", "pass", "signals", "folded"],
+      "properties": {
+        "status": {
+          "enum": ["match", "arithmetic_error", "understanding_diff", "no_formula", "not_applicable", "error"],
+          "description": "match: 식·산수·코드 계산이 모두 같다. arithmetic_error: 식은 맞는데 적은 값이 다르다. understanding_diff: 식의 값이 코드 계산과 다르다"
+        },
+        "recomputed": { "type": ["string", "null"], "description": "LLM 식을 코드가 다시 계산한 값" },
+        "pass": { "type": "boolean" },
+        "signals": { "type": "array", "items": { "type": "string" } },
+        "folded": { "type": "boolean" }
+      }
+    },
+    "price": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "llm", "code", "check"],
+      "properties": {
+        "read": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/read_values" }] },
+        "llm": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/llm_calc" }] },
+        "code": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/code_calc" }] },
+        "check": { "$ref": "#/$defs/price_check" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "line", "text"],
+      "properties": {
+        "source": { "enum": ["procurement", "page", "site_policy"] },
+        "line": { "type": ["integer", "null"], "minimum": 1, "description": "판매 페이지 줄 번호(조달 물품이면 null)" },
+        "field": { "type": "string", "description": "조달 물품의 칸 이름(name, model 등)" },
+        "text": { "type": "string", "minLength": 1 },
+        "hidden": { "type": "boolean" }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "kind", "line", "text"],
+      "properties": {
+        "level": { "enum": ["danger", "caution", "notice"], "description": "danger · 주의 · 표시만" },
+        "kind": { "enum": ["ai_instruction", "hidden_evidence", "hidden_text"] },
+        "line": { "type": ["integer", "null"] },
+        "text": { "type": "string" }
+      }
+    },
+    "case_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unissued_evidence", "missing_required", "assertive", "hidden_evidence", "vat_flip", "vat_policy_checked", "attach_rejections", "calculator_calls", "has_required_list"],
+      "properties": {
+        "unissued_evidence": { "type": "array", "items": { "type": "string" } },
+        "missing_required": { "type": "array", "items": { "type": "string" } },
+        "assertive": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["field", "phrase"],
+            "properties": { "field": { "type": "string" }, "phrase": { "type": "string" } }
+          }
+        },
+        "hidden_evidence": { "type": "array", "items": { "type": "string" } },
+        "vat_flip": { "type": "boolean", "description": "부가세 두 가정으로 결론이 바뀐다" },
+        "vat_policy_checked": { "type": "boolean" },
+        "attach_rejections": { "type": "integer", "minimum": 0 },
+        "calculator_calls": { "type": "integer", "minimum": 0 },
+        "has_required_list": { "type": "boolean" }
+      }
+    },
+    "title_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agree", "supplement"],
+      "properties": {
+        "agree": { "type": "boolean" },
+        "supplement": { "type": ["string", "null"], "maxLength": 500 }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["to", "because"],
+      "properties": {
+        "to": { "enum": ["auto", "human"] },
+        "because": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["rule", "text"],
+            "properties": { "rule": { "type": "integer", "minimum": 1, "maximum": 10 }, "text": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "repeats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "labels"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 2 },
+        "labels": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "prompt_version", "source_sha256", "split_rule", "category", "runs", "tool_calls", "tokens_in", "tokens_out", "cost_usd", "elapsed_ms", "started_at", "error"],
+      "properties": {
+        "model": { "type": "string" },
+        "prompt_version": { "type": "string" },
+        "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "split_rule": { "type": "string" },
+        "category": { "type": "string" },
+        "runs": { "type": "integer", "minimum": 1 },
+        "tool_calls": { "type": "integer", "minimum": 0 },
+        "tokens_in": { "type": "integer", "minimum": 0 },
+        "tokens_out": { "type": "integer", "minimum": 0 },
+        "cache_read_tokens": { "type": "integer", "minimum": 0 },
+        "cost_usd": { "$ref": "#/$defs/usd" },
+        "elapsed_ms": { "type": "integer", "minimum": 0 },
+        "started_at": { "type": "string" },
+        "error": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

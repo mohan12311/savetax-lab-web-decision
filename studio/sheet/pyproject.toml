@@ -1,0 +1,27 @@
+[project]
+name = "studio-sheet"
+version = "0.1.0"
+description = "savetax-lab 2부 답안지 라이브러리(입력 준비·근거 첨부·확인 코드·코드 계산·처리 결정)와 에이전트 도구 MCP 서버"
+requires-python = ">=3.12"
+dependencies = [
+    "studio-schema",
+    "mcp>=1.9",
+]
+
+[tool.uv.sources]
+studio-schema = { path = "../schema", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/studio_sheet"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

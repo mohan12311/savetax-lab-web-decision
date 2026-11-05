@@ -1,0 +1,61 @@
+{
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-3",
+   "result": "within_tolerance",
+   "confidence": 0.7,
+   "folded": true
+  },
+  {
+   "attribute": "두께",
+   "procurement": "ev-1",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 0.95
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-2",
+   "seller": "ev-5",
+   "result": "same",
+   "confidence": 0.95
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-9",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.9
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "9900",
+    "ev": "ev-6"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-7"
+   },
+   "sale_unit": {
+    "value": "㎡",
+    "ev": "ev-8"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-8"
+   }
+  },
+  "llm": {
+   "formula": "ceil(9900 × 1.1)",
+   "benchmark_krw": "10890"
+  }
+ },
+ "reason": "규격 {ev-1}과 {ev-3}은 한 변이 1% 다르지만 종류·두께·투수 여부가 같아 동급으로 봤다.",
+ "hold_reason": null,
+ "hold_rows": []
+}

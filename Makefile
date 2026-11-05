@@ -8,8 +8,8 @@ SAVETAX_TOKEN := $(_ENV_TOKEN)
 endif
 # 그래도 비어 있으면 macOS 키체인(service=savetax-lab, account=SAVETAX_TOKEN)에서 읽는다.
 # 토큰을 저장소 파일·명령줄에 두지 않기 위함. 키체인이 없거나 항목이 없으면 빈 값 그대로.
-# demo* 목표(2부 데모)만 부를 때는 키체인을 읽지 않는다.
-ifeq ($(filter-out demo%,$(MAKECMDGOALS))$(if $(MAKECMDGOALS),,x),)
+# demo*·studio-* 목표(2부)만 부를 때는 키체인에서 참가 토큰을 읽지 않는다.
+ifeq ($(filter-out demo% studio-%,$(MAKECMDGOALS))$(if $(MAKECMDGOALS),,x),)
 else ifeq ($(strip $(SAVETAX_TOKEN)),)
 SAVETAX_TOKEN := $(shell security find-generic-password -s savetax-lab -a SAVETAX_TOKEN -w 2>/dev/null)
 endif
@@ -21,6 +21,7 @@ GO := cd collector && go run ./cmd/savetax
 # Python 단계는 bronze 파일만 읽고 API를 부르지 않으므로 토큰을 프로세스에 넘기지 않는다.
 PY := cd pipeline && env -u SAVETAX_TOKEN uv run
 
+.PHONY: studio-test studio-baseline studio-run studio-grade studio-web studio-review
 .PHONY: build check dataset silver candidates lookup facts found listing scrape probe preview submit revise preview-revise submit-status test demo demo-serve demo-test
 
 build:       ; cd collector && go build -o bin/savetax ./cmd/savetax
@@ -62,3 +63,52 @@ test:        ; cd collector && go test ./... && if [ -f ../pipeline/pyproject.to
 demo:        ; env -u SAVETAX_TOKEN studio/demo.sh run
 demo-serve:  ; env -u SAVETAX_TOKEN studio/demo.sh serve
 demo-test:   ; cd studio/fakeserver && go test ./... && cd ../synth && env -u SAVETAX_TOKEN uv run pytest -q && cd ../../collector && go test ./internal/config/
+
+# --- 2부 워크플로우(studio/): 에이전트 → 답안지 → 웹 검토 → 사람 판정 → 채점. 참가 토큰을 쓰지 않는다 ---
+# 에이전트와 도구 서버는 정답 파일(cases.jsonl)을 읽지 않는다. 채점(studio-grade)만 읽는다.
+STUDIO_SYNTH := $(abspath studio/demo/synth)
+STUDIO_RUNS := $(abspath studio/demo/runs)
+STUDIO_PY = env -u SAVETAX_TOKEN uv run --quiet
+# LLM API 키(이 프로젝트 전용 이름): 환경변수가 비면 키체인(service=savetax-lab, account=SAVETAX_STUDIO_OPENAI_KEY /
+# SAVETAX_STUDIO_ANTHROPIC_KEY)에서 이 프로세스에만 넘긴다. 전역 OPENAI_API_KEY·ANTHROPIC_API_KEY는 지워 섞이지 않게 한다.
+# 값을 명령줄·파일에 두지 않는다(CLAUDE.md 규칙 2).
+LLM_ENV = unset OPENAI_API_KEY ANTHROPIC_API_KEY; \
+	export SAVETAX_STUDIO_OPENAI_KEY="$${SAVETAX_STUDIO_OPENAI_KEY:-$$(security find-generic-password -s savetax-lab -a SAVETAX_STUDIO_OPENAI_KEY -w 2>/dev/null)}"; \
+	export SAVETAX_STUDIO_ANTHROPIC_KEY="$${SAVETAX_STUDIO_ANTHROPIC_KEY:-$$(security find-generic-password -s savetax-lab -a SAVETAX_STUDIO_ANTHROPIC_KEY -w 2>/dev/null)}";
+unexport LLM_ENV
+LATEST_RUN = $(or $(RUN),$(shell ls -d $(STUDIO_RUNS)/*/ 2>/dev/null | sort | tail -1 | xargs -n1 basename 2>/dev/null))
+
+$(STUDIO_SYNTH)/tasks.jsonl:
+	cd studio/synth && $(STUDIO_PY) python -m studio_synth --seed 7 --out $(STUDIO_SYNTH) --shop-base https://127.0.0.1:18444
+
+studio-test:
+	cd collector && go test ./cmd/studiocalc
+	cd studio/schema && $(STUDIO_PY) pytest -q
+	cd studio/synth && $(STUDIO_PY) pytest -q
+	cd studio/sheet && $(STUDIO_PY) pytest -q
+	cd studio/agent && $(STUDIO_PY) pytest -q
+	cd studio/grader && $(STUDIO_PY) pytest -q
+	cd studio/review && $(STUDIO_PY) pytest -q
+	cd studio/web && npm run --silent typecheck
+
+# LLM 없는 규칙 기준선으로 51건 전체를 돌리고 채점한다(비용 0)
+studio-baseline: $(STUDIO_SYNTH)/tasks.jsonl
+	cd studio/agent && $(STUDIO_PY) python -m studio_agent run --data $(STUDIO_SYNTH) --out $(STUDIO_RUNS) --model rule-baseline --concurrency 8 >/dev/null
+	$(MAKE) --no-print-directory studio-grade
+
+# 실제 LLM API로 돌린다(비용이 든다). 기본은 OpenAI gpt-6.1-terra. 예: make studio-run CASES=hard-01,hard-04 MODEL=gpt-6.1-sol
+studio-run: $(STUDIO_SYNTH)/tasks.jsonl
+	$(LLM_ENV) cd studio/agent && env -u SAVETAX_TOKEN uv run --quiet python -m studio_agent run --data $(STUDIO_SYNTH) --out $(STUDIO_RUNS) \
+		$(if $(MODEL),--model $(MODEL)) --effort $(or $(EFFORT),medium) --repeats $(or $(REPEATS),3) $(if $(CASES),--cases $(CASES)) >/dev/null
+	$(MAKE) --no-print-directory studio-grade
+
+# 채점(정답 파일을 읽는 유일한 단계). RUN=<실행 ID>, 비우면 가장 최근 실행
+studio-grade:
+	cd studio/grader && $(STUDIO_PY) python -m studio_grader $(STUDIO_RUNS)/$(LATEST_RUN) --truth $(STUDIO_SYNTH)/cases.jsonl
+
+studio-web:
+	cd studio/web && ([ -d node_modules ] || npm ci --no-audit --no-fund) && npm run --silent build
+
+# 웹 검토 화면: http://127.0.0.1:18480 (루프백만)
+studio-review: studio-web
+	cd studio/review && $(STUDIO_PY) python -m studio_review --runs $(STUDIO_RUNS) --data $(STUDIO_SYNTH)

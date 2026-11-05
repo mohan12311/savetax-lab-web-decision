@@ -12,6 +12,11 @@ EQUIVALENT = "equivalent"  # 동급(같은 종류·규격 허용 오차 안, 모
 DIFFERENT = "different"  # 다른 물건(핵심 속성이 다름)
 INSUFFICIENT = "insufficient"  # 근거 부족(페이지를 읽을 수 없거나 가격이 없음)
 LABELS = (SAME_MODEL, EQUIVALENT, DIFFERENT, INSUFFICIENT)
+
+# 차이의 종류(채점 명세 2절·3.6절). 속성 이름은 답안지의 품목별 필수 속성 목록(studio/sheet)과 같은 어휘다.
+D_DIFFERENT = "different"  # 다름
+D_TOLERANCE = "within_tolerance"  # 허용 오차 안
+D_NOT_ON_PAGE = "not_on_page"  # 페이지에 없음
 POSITIVE = (SAME_MODEL, EQUIVALENT)
 
 
@@ -62,6 +67,23 @@ class Case:
     label: str
     traps: list[str] = field(default_factory=list)
     note: str = ""
+    # 차이 속성: 조달 물품과 판매 페이지가 다른 속성과 차이의 종류. 근거 부족이면 None(비교할 페이지가 없다)
+    diffs: list[tuple[str, str]] | None = None
+
+    @property
+    def truth_read(self) -> dict | None:
+        """읽은 값의 정답(채점 명세 2절). 정적 페이지가 아니면 읽을 값이 없다."""
+        o = self.offer
+        if o.render != "static":
+            return None
+        vat = "not_stated" if o.vat_included is None else "included" if o.vat_included else "excluded"
+        per = o.units_per_fact_unit
+        return {
+            "sale_price_krw": None if o.price_krw is None else str(o.price_krw),
+            "vat": vat,
+            "sale_unit": o.sale_unit,
+            "conversion": str(per.numerator) if per.denominator == 1 else f"{per.numerator}/{per.denominator}",
+        }
 
     @property
     def benchmark_krw(self) -> int | None:

@@ -116,3 +116,30 @@ def test_prepare_out_refuses_foreign_directory(tmp_path):
     with pytest.raises(SystemExit):
         prepare_out(tmp_path)
     assert (tmp_path / "keep.txt").exists()
+
+
+def test_truth_read_values_and_diffs(out):
+    """읽은 값의 정답과 차이 속성(채점 명세 2절). 사람이 쓴 사례 메모와 맞아야 한다."""
+    rows = {r["case_id"]: r for r in (json.loads(line) for line in (out / "cases.jsonl").read_text().splitlines())}
+    assert rows["hard-04"]["truth"]["read"] == {"sale_price_krw": "400", "vat": "excluded", "sale_unit": "장", "conversion": "1/25"}
+    assert rows["hard-05"]["truth"]["read"]["conversion"] == "20"
+    assert rows["hard-11"]["truth"] == {"read": None, "diffs": None}  # JS 껍데기: 읽을 값이 없다
+    assert rows["hard-12"]["truth"]["read"]["sale_price_krw"] is None
+    assert {"attribute": "규격", "kind": "within_tolerance"} in rows["hard-01"]["truth"]["diffs"]
+    assert rows["hard-15"]["truth"]["diffs"] == []
+    for r in rows.values():
+        d = r["truth"]["diffs"]
+        assert (d is None) == (r["label"] == "insufficient"), r["case_id"]
+        if r["label"] == "equivalent":
+            assert {"attribute": "모델", "kind": "not_on_page"} in d, r["case_id"]
+        if r["label"] == "different":
+            assert any(x["kind"] == "different" for x in d), r["case_id"]
+
+
+def test_tasks_have_no_answers(out):
+    """작업 목록은 에이전트가 읽으므로 정답이 섞이면 안 된다."""
+    tasks = [json.loads(line) for line in (out / "tasks.jsonl").read_text().splitlines()]
+    cases = [json.loads(line) for line in (out / "cases.jsonl").read_text().splitlines()]
+    assert [t["case_id"] for t in tasks] == [c["case_id"] for c in cases]
+    for t in tasks:
+        assert set(t) == {"case_id", "item_id", "sku", "page_url"}

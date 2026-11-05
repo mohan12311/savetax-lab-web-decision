@@ -156,6 +156,9 @@ def build(answer: dict[str, Any], ctx: Context, *, title_review: dict[str, Any] 
             "assertive": checks.assertive(texts), "hidden_evidence": sorted(set(hidden)), "vat_flip": cp.vat_flip,
             "vat_policy_checked": ctx.policy_checked, "attach_rejections": ctx.attach_rejections,
             "calculator_calls": ctx.calculator_calls, "has_required_list": case.required is not None,
+            # 다른 물건·판단 보류는 가격이 결론에 쓰이지 않으므로 보지 않는다
+            "unread_price_text": answer["label"] in ("insufficient", *POSITIVE) and bool(checks.price_text_lines(case.agent_lines))
+                                 and (read is None or read["sale_price"]["value"] is None),
         },
         "conclusion": conclusion, "title": title, "title_review": title_review,
         "reason": answer["reason"], "hold_reason": answer["hold_reason"], "hold_rows": answer["hold_rows"],

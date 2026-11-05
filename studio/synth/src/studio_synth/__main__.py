@@ -20,10 +20,12 @@ def main() -> None:
     ap.add_argument("--observed-at", default=dt.datetime.now(KST).date().isoformat(),
                     help="참조 본문의 관측일(KST). 1부 게이트는 이 날 받아 둔 원문만 인정하므로 데모 당일이어야 한다")
     ap.add_argument("--base-count", type=int, default=36, help="난수로 만드는 기본 사례 수(어려운 사례 15개는 따로 붙는다)")
+    ap.add_argument("--variant", default="v1", choices=["v1", "v2"],
+                    help="v1: 1부 데모용 고른 표기. v2: 다양한 표기 + v2 전용 어려운 사례 4개(2부 평가용)")
     a = ap.parse_args()
     if not a.shop_base.startswith("https://"):
         ap.error("--shop-base는 https 주소여야 한다")
-    m = generate(a.out, a.seed, a.shop_base.rstrip("/"), a.observed_at, a.base_count)
+    m = generate(a.out, a.seed, a.shop_base.rstrip("/"), a.observed_at, a.base_count, a.variant)
     print(json.dumps({k: m[k] for k in ("seed", "observed_at", "case_count", "reference_claims", "labels", "actions", "content_sha256")},
                      ensure_ascii=False, indent=1))
 

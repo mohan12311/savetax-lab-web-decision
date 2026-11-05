@@ -150,6 +150,15 @@ def check_formula(llm: dict | None, code_b: int | None) -> tuple[str, str | None
     return "match", r["value"], [], 1
 
 
+_PRICE_TEXT = re.compile(r"(\d[\d,]*\s*원|₩\s*\d)")
+_SHIPPING = re.compile(r"(배송|택배|운반|화물|배달)")
+
+
+def price_text_lines(lines) -> list[int]:
+    """가격 꼴 글이 있는 줄(배송 안내 줄은 뺀다). 값을 뽑지 않고 "읽을 거리가 있었나"만 본다(처리 규칙 11)."""
+    return [ln.line for ln in lines if _PRICE_TEXT.search(ln.text) and not _SHIPPING.search(ln.text)]
+
+
 def assertive(texts: dict[str, str | None]) -> list[dict[str, str]]:
     out = []
     for field, t in texts.items():

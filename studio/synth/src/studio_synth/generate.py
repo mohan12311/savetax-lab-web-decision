@@ -23,9 +23,10 @@ from pathlib import Path
 
 from . import VERSION
 from .catalog import base_cases
-from .hard import hard_cases
+from .hard import hard_cases, hard_cases_v2
 from .model import POSITIVE, SAME_MODEL, Case
 from .render import page_html, quote_text, vat_text, won
+from .vary import page_html_v2, pick_style
 
 RELEASE_ID = "synthetic-v1"
 RULESET = "rules-v1"
@@ -147,9 +148,14 @@ def prepare_out(out: Path) -> None:
     shutil.rmtree(out)
 
 
-def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count: int = 36) -> dict:
+VARIANTS = ("v1", "v2")
+
+
+def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count: int = 36, variant: str = "v1") -> dict:
+    """variant v1: 1부 데모가 쓰는 고른 표기. v2: 같은 사례를 다양한 표기로 그리고 v2 전용 어려운 사례를 더한다(참조 본문은 만들지 않음)."""
+    assert variant in VARIANTS, variant
     rng = random.Random(seed)
-    cases = base_cases(rng, base_count) + hard_cases()
+    cases = base_cases(rng, base_count) + hard_cases() + (hard_cases_v2() if variant == "v2" else [])
     ids = [c.product.item_id for c in cases]
     skus = [c.offer.sku for c in cases]
     assert len(set(ids)) == len(ids) and len(set(skus)) == len(skus), "물품번호·SKU가 겹친다"
@@ -161,7 +167,8 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
         items.append(item_json(c, facts))
         html_file = f"html/{c.offer.sku}.html"
         (out / "shop" / "html").mkdir(parents=True, exist_ok=True)
-        (out / "shop" / html_file).write_text(page_html(c.offer), encoding="utf-8")
+        html = page_html(c.offer) if variant == "v1" else page_html_v2(c.offer, pick_style(seed, c.case_id))
+        (out / "shop" / html_file).write_text(html, encoding="utf-8")
         pages.append({"sku": c.offer.sku, "path": c.offer.path, "render": c.offer.render, "title": c.offer.title,
                       "vat_included": c.offer.vat_included if c.offer.price_krw is not None else None, "html_file": html_file})
         tasks.append({"case_id": c.case_id, "item_id": c.product.item_id, "sku": c.offer.sku, "page_url": shop_base + c.offer.path})
@@ -181,7 +188,7 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
             },
             "note": c.note,
         })
-        expect = reference_expect(c)
+        expect = reference_expect(c) if variant == "v1" else None
         if expect:
             dump(out / "claims" / f"{c.product.item_id}.json", claim_json(c, facts, shop_base, observed_at, seed))
             claims_index.append({"item_id": c.product.item_id, "case_id": c.case_id, "page_url": shop_base + c.offer.path,
@@ -198,7 +205,7 @@ def generate(out: Path, seed: int, shop_base: str, observed_at: str, base_count:
     for p in files:
         digest.update(f"{p.relative_to(out).as_posix()}\0{sha256(p)}\n".encode())
     manifest = {
-        "generator": "studio-synth", "version": VERSION, "seed": seed,
+        "generator": "studio-synth", "version": VERSION, "seed": seed, "variant": variant,
         "dataset_release_id": RELEASE_ID, "ruleset_version": RULESET,
         "shop_base_url": shop_base, "observed_at": observed_at,
         "item_count": len(items), "page_count": len(pages), "case_count": len(rows),

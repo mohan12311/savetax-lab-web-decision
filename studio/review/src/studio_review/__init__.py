@@ -49,6 +49,15 @@ class Store:
     def __init__(self, runs_root: Path, data_dir: Path):
         self.runs_root = runs_root.resolve()
         self.data = AgentData(data_dir)
+        self._by_dir: dict[str, AgentData] = {}
+
+    def _data_for(self, rid: str) -> AgentData:
+        """실행이 쓴 합성 데이터(run.json의 data_dir, v1/v2). 없거나 사라졌으면 기본 데이터."""
+        meta = json.loads((self._run(rid) / "run.json").read_text(encoding="utf-8"))
+        d = meta.get("data_dir")
+        if not d or not (Path(d) / "tasks.jsonl").exists():
+            return self.data
+        return self._by_dir.setdefault(d, AgentData(Path(d)))
 
     def _run(self, rid: str) -> Path:
         d = (self.runs_root / rid).resolve()
@@ -95,8 +104,9 @@ class Store:
 
     def case(self, rid: str, cid: str) -> dict[str, Any]:
         s = self._sheet(rid, cid)
-        case = prepare(self.data, cid)
-        item = self.data.item(case.item_id)
+        data = self._data_for(rid)
+        case = prepare(data, cid)
+        item = data.item(case.item_id)
         return {
             "sheet": s,
             "page": {"url": case.page_url, "sha256": case.source_sha256, "lines": [ln.as_dict() for ln in case.lines],

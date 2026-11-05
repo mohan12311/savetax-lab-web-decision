@@ -190,6 +190,10 @@ export interface CaseChecks {
   attach_rejections: number;
   calculator_calls: number;
   has_required_list: boolean;
+  /**
+   * 페이지에 가격 꼴 글(N원, ₩N, 배송 줄 제외)이 있는데 에이전트가 가격을 읽지 않았다(처리 규칙 11)
+   */
+  unread_price_text?: boolean;
 }
 export interface TitleReview {
   agree: boolean;

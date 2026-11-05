@@ -284,3 +284,17 @@ def test_conversion_evidence_may_be_procurement_unit(synth_dir):
     ans["price"]["read"]["conversion"]["ev"] = a.book.attach("procurement", "㎡", field="unit")["id"]
     s = assemble.build(ans, a.ctx(), title_review=AGREE, run=RUN)
     assert s["price"]["check"]["folded"] and s["price"]["check"]["signals"] == []
+
+
+def test_rule11_unread_price_goes_to_human(synth_dir):
+    """페이지에 가격이 있는데 근거 부족이라 하면 모든 줄이 접혀도 사람에게 간다(조용히 놓치기 방지)."""
+    a = Answer(synth_dir, "hard-06")
+    ans = {"label": "insufficient", "rows": [row(n, None, None, "not_on_page") for n in ("규격", "두께", "종류", "투수 여부", "모델", "구성")],
+           "price": {"read": None, "llm": None}, "reason": "근거를 찾지 못했다.", "hold_reason": None, "hold_rows": []}
+    s = assemble.build(ans, a.ctx(), title_review=AGREE, run=RUN)
+    assert s["checks"]["unread_price_text"] and [b["rule"] for b in s["routing"]["because"]] == [11]
+    # 가격 문의 페이지의 근거 부족은 그대로 자동 통과(배송 줄의 금액은 가격으로 세지 않는다)
+    b = Answer(synth_dir, "hard-12")
+    ans["reason"] = "가격 문의 페이지다."
+    s = assemble.build(ans, b.ctx(), title_review=AGREE, run=RUN)
+    assert not s["checks"]["unread_price_text"] and s["routing"]["to"] == "auto"

@@ -120,7 +120,7 @@ def market_unit_price(offer: Offer) -> int:
     """판매가 → 조달 단위 1개당 부가세 포함 가격(올림, 비교 단가를 낮게 잡지 않는다)."""
     assert offer.price_krw is not None
     per_unit = Fraction(offer.price_krw) / offer.units_per_fact_unit
-    if not offer.vat_included:
+    if offer.vat_included is False:  # 표기가 없으면(None) 포함으로 가정한다(답안지 명세 6절)
         per_unit *= Fraction(11, 10)
     return ceil_frac(per_unit)
 

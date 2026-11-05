@@ -113,6 +113,7 @@ export const RULE_KO: Record<number, string> = {
   8: "필수 속성 누락",
   9: "단정 표현",
   10: "자동 통과",
+  11: "읽지 않은 가격",
 };
 
 export function won(s: string | null | undefined): string {

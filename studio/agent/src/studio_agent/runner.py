@@ -257,7 +257,7 @@ async def run_all(llm: LLM, data_dir: Path, run_dir: Path, case_ids: list[str] |
     ids = case_ids or [t["case_id"] for t in data.tasks]
     meta = {
         "run_id": run_dir.name, "model": llm.model, "effort": effort, "prompt_version": PROMPT_VERSION, "repeats": repeats,
-        "data_dir": str(data_dir), "tasks_sha256": hashlib.sha256(data._read("tasks.jsonl")).hexdigest(),
+        "data_dir": str(Path(data_dir).resolve()), "tasks_sha256": hashlib.sha256(data._read("tasks.jsonl")).hexdigest(),
         "cases": ids, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     (run_dir / "run.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

@@ -143,3 +143,21 @@ def test_tasks_have_no_answers(out):
     assert [t["case_id"] for t in tasks] == [c["case_id"] for c in cases]
     for t in tasks:
         assert set(t) == {"case_id", "item_id", "sku", "page_url"}
+
+
+def test_v2_same_truth_varied_pages(out, tmp_path):
+    """v2는 같은 사례·같은 정답에 겉모습만 다르고, v2 전용 어려운 사례 4개를 더한다. 참조 본문은 만들지 않는다."""
+    v2 = tmp_path / "v2"
+    m = generate(v2, 7, SHOP, DAY, variant="v2")
+    assert m["variant"] == "v2" and m["case_count"] == 55 and m["reference_claims"] == 0
+    c1 = {r["case_id"]: r for r in (json.loads(x) for x in (out / "cases.jsonl").read_text().splitlines())}
+    c2 = {r["case_id"]: r for r in (json.loads(x) for x in (v2 / "cases.jsonl").read_text().splitlines())}
+    assert set(c2) - set(c1) == {"hard-16", "hard-17", "hard-18", "hard-19"}
+    for cid, r in c1.items():
+        assert {k: v for k, v in c2[cid].items() if k != "page_url"} == {k: v for k, v in r.items() if k != "page_url"}, cid
+    assert (json.loads((v2 / "items.json").read_text())[0]) == json.loads((out / "items.json").read_text())[0]
+    p1 = (out / "shop" / "html" / "K90004.html").read_text()
+    p2 = (v2 / "shop" / "html" / "K90004.html").read_text()
+    assert p1 != p2 and "400원" in p2 and "25장/㎡" in p2
+    assert c2["hard-16"]["truth"]["read"]["vat"] == "not_stated" and c2["hard-16"]["expected"]["benchmark_unit_price_krw"] == "10000"
+    assert c2["hard-19"]["expected"]["benchmark_unit_price_krw"] == "45000"

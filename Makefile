@@ -66,7 +66,8 @@ demo-test:   ; cd studio/fakeserver && go test ./... && cd ../synth && env -u SA
 
 # --- 2부 워크플로우(studio/): 에이전트 → 답안지 → 웹 검토 → 사람 판정 → 채점. 참가 토큰을 쓰지 않는다 ---
 # 에이전트와 도구 서버는 정답 파일(cases.jsonl)을 읽지 않는다. 채점(studio-grade)만 읽는다.
-STUDIO_SYNTH := $(abspath studio/demo/synth)
+# VARIANT=v2: 표기를 다양하게 그린 합성 데이터(2부 평가용). 비우면 v1(1부 데모와 같은 데이터)
+STUDIO_SYNTH := $(abspath studio/demo/$(if $(filter v2,$(VARIANT)),synth-v2,synth))
 STUDIO_RUNS := $(abspath studio/demo/runs)
 STUDIO_PY = env -u SAVETAX_TOKEN uv run --quiet
 # LLM API 키(이 프로젝트 전용 이름): 환경변수가 비면 키체인(service=savetax-lab, account=SAVETAX_STUDIO_OPENAI_KEY /
@@ -79,7 +80,7 @@ unexport LLM_ENV
 LATEST_RUN = $(or $(RUN),$(shell ls -d $(STUDIO_RUNS)/*/ 2>/dev/null | sort | tail -1 | xargs -n1 basename 2>/dev/null))
 
 $(STUDIO_SYNTH)/tasks.jsonl:
-	cd studio/synth && $(STUDIO_PY) python -m studio_synth --seed 7 --out $(STUDIO_SYNTH) --shop-base https://127.0.0.1:18444
+	cd studio/synth && $(STUDIO_PY) python -m studio_synth --seed 7 --out $(STUDIO_SYNTH) --shop-base https://127.0.0.1:18444 --variant $(or $(VARIANT),v1)
 
 studio-test:
 	cd collector && go test ./cmd/studiocalc

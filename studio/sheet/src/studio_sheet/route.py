@@ -34,6 +34,8 @@ def decide(sheet: dict[str, Any]) -> dict[str, Any]:
         add(8, "필수 속성의 줄이 없다: " + ", ".join(ch["missing_required"]))
     if ch["assertive"]:
         add(9, "단정 표현이 있다: " + ", ".join(sorted({a["phrase"] for a in ch["assertive"]})))
+    if ch.get("unread_price_text"):
+        add(11, "페이지에 가격 꼴 글이 있는데 가격을 읽지 않았다(놓친 근거일 수 있다)")
     if because:
         return {"to": "human", "because": because}
     return {"to": "auto", "because": [{"rule": 10, "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"}]}

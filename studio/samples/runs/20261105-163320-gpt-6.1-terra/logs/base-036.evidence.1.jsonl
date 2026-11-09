@@ -1,0 +1,12 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "model", "text": "VM24F-C5"}
+{"id": "ev-2", "source": "page", "line": 5, "text": "VM24F-C5", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "액정모니터"}
+{"id": "ev-4", "source": "page", "line": 3, "text": "모니터", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "name", "text": "60.5cm"}
+{"id": "ev-6", "source": "page", "line": 7, "text": "60.5cm", "hidden": false}
+{"id": "ev-7", "source": "page", "line": 8, "text": "₩340,000", "hidden": false}
+{"id": "ev-8", "source": "page", "line": 8, "text": "VAT 포함", "hidden": false}
+{"id": "ev-9", "source": "page", "line": 9, "text": "대", "hidden": false}
+{"id": "ev-10", "source": "procurement", "line": null, "field": "unit", "text": "대"}
+{"id": "ev-11", "source": "procurement", "line": null, "field": "manufacturer", "text": "다온테크(가상)"}
+{"id": "ev-12", "source": "page", "line": 3, "text": "다온테크(가상)", "hidden": false}

@@ -1,0 +1,151 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-031",
+ "item_id": "SYN0031",
+ "page_url": "https://127.0.0.1:18444/item/K10030",
+ "read_mode": "static",
+ "label": "insufficient",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "재질",
+   "procurement": "ev-2",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-3",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-4",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": null,
+  "llm": null,
+  "code": null,
+  "check": {
+   "status": "not_applicable",
+   "recomputed": null,
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "500×500×50mm"
+  },
+  "ev-2": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "스틸"
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "GT-5S53"
+  },
+  "ev-4": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "그레이팅덮개"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 0,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(근거 부족)",
+ "title_review": {
+  "agree": true,
+  "supplement": "정적 판매 페이지에서 상품 정보와 가격을 읽을 수 없어 비교 단가를 산정하지 못했다."
+ },
+ "reason": "조달 물품의 규격 {ev-1}, 재질 {ev-2}, 모델 {ev-3}, 구성 {ev-4}을 확인했으나 판매 페이지에서 상품 정보와 가격을 읽을 수 없어 대조 및 비교 단가 산정이 불가능하다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "0aa20fc4e3afc489b6d005230a561868c6084e6cee0a4f24145742823ddf205c",
+  "category": "그레이팅",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 8,
+  "tokens_in": 1034,
+  "tokens_out": 476,
+  "cache_read_tokens": 10735,
+  "cost_usd": "0.004206",
+  "elapsed_ms": 11717,
+  "started_at": "2026-11-05T07:35:22+00:00",
+  "error": null
+ }
+}

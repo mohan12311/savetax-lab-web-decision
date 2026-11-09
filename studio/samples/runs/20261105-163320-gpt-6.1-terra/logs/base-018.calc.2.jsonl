@@ -1,0 +1,1 @@
+{"expr": "ceil(99000 ÷ 1 × 1.1)", "exact": true, "fraction": "108900", "integer": true, "ok": true, "value": "108900"}

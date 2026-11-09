@@ -1,0 +1,11 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "name", "text": "500×500×50mm"}
+{"id": "ev-2", "source": "page", "line": 5, "text": "500×500×50mm", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "주철"}
+{"id": "ev-4", "source": "page", "line": 7, "text": "주철", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "model", "text": "GT-5C95"}
+{"id": "ev-6", "source": "procurement", "line": null, "field": "name", "text": "그레이팅덮개"}
+{"id": "ev-7", "source": "page", "line": 3, "text": "그레이팅 덮개", "hidden": false}
+{"id": "ev-8", "source": "page", "line": 8, "text": "₩34,000", "hidden": false}
+{"id": "ev-9", "source": "page", "line": 8, "text": "VAT 별도", "hidden": false}
+{"id": "ev-10", "source": "page", "line": 9, "text": "개당", "hidden": false}
+{"id": "ev-11", "source": "procurement", "line": null, "field": "unit", "text": "개"}

@@ -1,0 +1,221 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-033",
+ "item_id": "SYN0033",
+ "page_url": "https://127.0.0.1:18444/item/K10032",
+ "read_mode": "static",
+ "label": "insufficient",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "두께",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "투수 여부",
+   "procurement": "ev-7",
+   "seller": "ev-8",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-9",
+   "seller": "ev-10",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": null,
+  "llm": null,
+  "code": null,
+  "check": {
+   "status": "not_applicable",
+   "recomputed": null,
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "200×200"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 4,
+   "text": "200×200",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "80mm"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 6,
+   "text": "80T",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "인조화강블록"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 5,
+   "text": "인조화강블록",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "불투수"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 5,
+   "text": "불투수",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "HB-E20807"
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 7,
+   "text": "HB-E20807",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "page",
+   "line": 8,
+   "text": "가격 문의",
+   "hidden": false
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 0,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(근거 부족)",
+ "title_review": {
+  "agree": true,
+  "supplement": "모델과 핵심 규격은 일치하지만 판매 가격이 문의로 표시되어 비교 단가를 계산할 수 없습니다."
+ },
+ "reason": "모델과 핵심 규격은 일치하지만, 판매 페이지가 {ev-11}로 표시되어 가격을 확인할 수 없다. 따라서 비교 단가를 계산할 근거가 부족하다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "f26ef707558e9e4fc6922b891e93ab18849dbb3e060b2a0e6b7ee30a261824d1",
+  "category": "보차도용콘크리트블록",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 15,
+  "tokens_in": 2088,
+  "tokens_out": 804,
+  "cache_read_tokens": 12083,
+  "cost_usd": "0.007231",
+  "elapsed_ms": 14869,
+  "started_at": "2026-11-05T07:35:33+00:00",
+  "error": null
+ }
+}

@@ -1,0 +1,262 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-018",
+ "item_id": "SYN0018",
+ "page_url": "https://127.0.0.1:18444/item/K10017",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "품목",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.95,
+   "required": false,
+   "check": {
+    "pass": false,
+    "signals": [
+     "value_compare: 값이 다른데 같음이라고 했다(철근콘크리트벤치플룸관 ↔ 벤치플룸관)"
+    ]
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": false
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "99000",
+    "ev": "ev-8"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-9"
+   },
+   "sale_unit": {
+    "value": "본",
+    "ev": "ev-10"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-10"
+   }
+  },
+  "llm": {
+   "formula": "ceil(99000 ÷ 1 × 1.1)",
+   "benchmark_krw": "108900"
+  },
+  "code": {
+   "benchmark_krw": "108900",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "141570",
+   "ratio": "1.3",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "5880600"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "108900",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "600×500×2000mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 5,
+   "text": "600×500×2000mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "2종"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 7,
+   "text": "2종",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "NF-265"
+  },
+  "ev-6": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "철근콘크리트벤치플룸관"
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 3,
+   "text": "벤치플룸관",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 10,
+   "text": "99,000원",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 11,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 12,
+   "text": "본당",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "본"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 벤치플룸관 시중가 대비 1.3배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 모델은 기재되지 않았고, 비교 단가에는 별도 운반비를 포함하지 않았다."
+ },
+ "reason": "판매 페이지에 조달 모델 {ev-5}의 표기는 없지만, 품목 {ev-6}과 {ev-7}, 규격 {ev-1}과 {ev-2}, 종류 {ev-3}과 {ev-4}가 부합하여 동급으로 판단한다. 가격 {ev-8}은 {ev-9}이며 {ev-10} 가격이다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 4,
+    "text": "펼쳐진 줄이 있다: 품목"
+   },
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": {
+  "total": 3,
+  "labels": {
+   "equivalent": 3
+  }
+ },
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "1eb236a0ac6e2cec3e49973e276f7b9a44cdc574350d65c6c2954e4035c259f3",
+  "category": "벤치플룸관",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 3,
+  "tool_calls": 49,
+  "tokens_in": 5195,
+  "tokens_out": 2682,
+  "cache_read_tokens": 32437,
+  "cost_usd": "0.021517",
+  "elapsed_ms": 49500,
+  "started_at": "2026-11-05T07:34:22+00:00",
+  "error": null
+ }
+}

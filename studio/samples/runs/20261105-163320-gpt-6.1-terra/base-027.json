@@ -1,0 +1,242 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-027",
+ "item_id": "SYN0027",
+ "page_url": "https://127.0.0.1:18444/item/K10026",
+ "read_mode": "static",
+ "label": "same_model",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "재질",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-7",
+   "seller": "ev-8",
+   "result": "same",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.95,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "65000",
+    "ev": "ev-9"
+   },
+   "vat": {
+    "value": "included",
+    "ev": "ev-10"
+   },
+   "sale_unit": {
+    "value": "개",
+    "ev": "ev-12"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-12"
+   }
+  },
+  "llm": {
+   "formula": "ceil(65000 ÷ 1)",
+   "benchmark_krw": "65000"
+  },
+  "code": {
+   "benchmark_krw": "65000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "195000",
+   "ratio": "3.0",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "79300000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "65000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "400×400×50mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 5,
+   "text": "400×400×50mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "TPE"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 6,
+   "text": "TPE",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "GT-4T67"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 7,
+   "text": "GT-4T67",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "그레이팅덮개"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 3,
+   "text": "그레이팅 덮개",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 4,
+   "text": "65,000원",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 4,
+   "text": "부가세 포함",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "개"
+  },
+  "ev-12": {
+   "source": "page",
+   "line": 8,
+   "text": "개당",
+   "hidden": false
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "같은 모델의 시중가 대비 3.0배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매가에 부가세가 포함되어 있으며 배송비는 비교 단가에 더하지 않았습니다."
+ },
+ "reason": "모델 {ev-5}와 {ev-6}, 규격 {ev-1}과 {ev-2}, 재질 {ev-3}과 {ev-4}가 같고, 양쪽 모두 덮개 본품 {ev-7}과 {ev-8}이다. 판매가는 {ev-9}이며 {ev-10}으로 표기되어 있다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "e0e1de76976aa9395379ab59c2de39f2ed82f81697477e849a8a4be745d5911b",
+  "category": "그레이팅",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 17,
+  "tokens_in": 2151,
+  "tokens_out": 826,
+  "cache_read_tokens": 12046,
+  "cost_usd": "0.007418",
+  "elapsed_ms": 15493,
+  "started_at": "2026-11-05T07:35:06+00:00",
+  "error": null
+ }
+}

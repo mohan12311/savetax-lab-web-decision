@@ -1,0 +1,145 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "hard-11",
+ "item_id": "SYN9011",
+ "page_url": "https://127.0.0.1:18444/item/K90011",
+ "read_mode": "static",
+ "label": "insufficient",
+ "rows": [
+  {
+   "attribute": "모델",
+   "procurement": "ev-1",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-2",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "화면 크기",
+   "procurement": "ev-3",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": null,
+  "llm": null,
+  "code": null,
+  "check": {
+   "status": "not_applicable",
+   "recomputed": null,
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "VM27Q-B2"
+  },
+  "ev-2": {
+   "source": "procurement",
+   "line": null,
+   "field": "category",
+   "text": "액정모니터"
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "68.6cm"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 0,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(근거 부족)",
+ "title_review": {
+  "agree": true,
+  "supplement": "정적 HTML에서 판매 상품 정보와 가격을 읽을 수 없어 동일성 및 비교 단가를 판단할 수 없습니다."
+ },
+ "reason": "조달 물품의 모델은 {ev-1}, 품목은 {ev-2}, 화면 크기는 {ev-3}이다. 판매 페이지의 정적 HTML에서 상품 정보와 가격을 읽을 수 없어 대조 및 비교 단가 산정이 불가능하다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "acf1c0ee328323eb9780ecdf27d1f4fa0d671a493eddc57c98e10749b8209258",
+  "category": "액정모니터",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 7,
+  "tokens_in": 976,
+  "tokens_out": 449,
+  "cache_read_tokens": 10702,
+  "cost_usd": "0.003997",
+  "elapsed_ms": 10988,
+  "started_at": "2026-11-05T07:36:37+00:00",
+  "error": null
+ }
+}

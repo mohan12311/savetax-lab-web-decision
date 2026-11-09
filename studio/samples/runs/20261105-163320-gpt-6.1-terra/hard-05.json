@@ -1,0 +1,280 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "hard-05",
+ "item_id": "SYN9005",
+ "page_url": "https://127.0.0.1:18444/item/K90005",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "두께",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "투수 여부",
+   "procurement": "ev-7",
+   "seller": "ev-8",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-9",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 0.98,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "198000",
+    "ev": "ev-12"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-13"
+   },
+   "sale_unit": {
+    "value": "파렛트",
+    "ev": "ev-14"
+   },
+   "conversion": {
+    "value": "20",
+    "ev": "ev-15"
+   }
+  },
+  "llm": {
+   "formula": "ceil(198000 ÷ 20 × 1.1)",
+   "benchmark_krw": "10890"
+  },
+  "code": {
+   "benchmark_krw": "10890",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "28000",
+   "ratio": "2.5",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "17110000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "10890",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "200×200"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 3,
+   "text": "200×200",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "60mm"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 4,
+   "text": "60T",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "인조화강블록"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 3,
+   "text": "인조화강블록",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "투수"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 3,
+   "text": "투수",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "HB-X2060"
+  },
+  "ev-10": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "보차도용콘크리트블록"
+  },
+  "ev-11": {
+   "source": "page",
+   "line": 3,
+   "text": "인조화강블록(투수) 200×200×60mm",
+   "hidden": false
+  },
+  "ev-12": {
+   "source": "page",
+   "line": 5,
+   "text": "198,000원",
+   "hidden": false
+  },
+  "ev-13": {
+   "source": "page",
+   "line": 6,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-14": {
+   "source": "page",
+   "line": 7,
+   "text": "파렛트",
+   "hidden": false
+  },
+  "ev-15": {
+   "source": "page",
+   "line": 7,
+   "text": "1파렛트 = 20㎡",
+   "hidden": false
+  },
+  "ev-16": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "㎡"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 보차도용콘크리트블록 시중가 대비 2.5배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 페이지에는 모델이 표기되지 않아 동급으로 판단했습니다. 비교 단가에 운반비는 포함하지 않았습니다."
+ },
+ "reason": "판매 페이지에 모델 표기는 없지만, 규격 {ev-1}과 {ev-2}, 두께 {ev-3}과 {ev-4}, 종류 {ev-5}와 {ev-6}, 투수 여부 {ev-7}과 {ev-8}이 일치하여 동급으로 판단한다. 판매가는 {ev-12}, 부가세는 {ev-13}, 판매 단위 환산은 {ev-15}이며 조달 단위는 {ev-16}이다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "5cc8216ba5a44f0c7a87656e248ea5a49447ace7d84a5ecd52539a8f53800269",
+  "category": "보차도용콘크리트블록",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 21,
+  "tokens_in": 2651,
+  "tokens_out": 1052,
+  "cache_read_tokens": 12513,
+  "cost_usd": "0.009196",
+  "elapsed_ms": 17547,
+  "started_at": "2026-11-05T07:36:05+00:00",
+  "error": null
+ }
+}

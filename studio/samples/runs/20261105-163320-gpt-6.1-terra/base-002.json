@@ -1,0 +1,236 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-002",
+ "item_id": "SYN0002",
+ "page_url": "https://127.0.0.1:18444/item/K10001",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.96,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.95,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "140000",
+    "ev": "ev-8"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-9"
+   },
+   "sale_unit": {
+    "value": "본",
+    "ev": "ev-10"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-10"
+   }
+  },
+  "llm": {
+   "formula": "ceil(140000 ÷ 1 × 1.1)",
+   "benchmark_krw": "154000"
+  },
+  "code": {
+   "benchmark_krw": "154000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "246400",
+   "ratio": "1.6",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "28644000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "154000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "600×500×2000mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 3,
+   "text": "600×500×2000mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "2종"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "2종",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "NF-265"
+  },
+  "ev-6": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "철근콘크리트벤치플룸관"
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 3,
+   "text": "벤치플룸관",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 5,
+   "text": "140,000원",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 6,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 7,
+   "text": "본당",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "본"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 벤치플룸관 시중가 대비 1.6배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 페이지에 모델은 표시되지 않았으며, 비교 단가에는 별도 운반비를 포함하지 않았다."
+ },
+ "reason": "판매 상품은 조달 물품과 품목 {ev-6} {ev-7}, 규격 {ev-1} {ev-2}, 종류 {ev-3} {ev-4}가 일치한다. 조달 모델 {ev-5}는 판매 페이지에 표시되지 않아 동급으로 판단한다. 판매가는 {ev-8}, 부가세는 {ev-9}, 판매 단위는 {ev-10}이며 조달 단위 {ev-11}과 같다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "299a6eb2e8f4d3cf67566a95335c08af132a6fe792b0c9e57c7fe347c02fafe7",
+  "category": "벤치플룸관",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 16,
+  "tokens_in": 2091,
+  "tokens_out": 856,
+  "cache_read_tokens": 11895,
+  "cost_usd": "0.007486",
+  "elapsed_ms": 17382,
+  "started_at": "2026-11-05T07:33:20+00:00",
+  "error": null
+ }
+}

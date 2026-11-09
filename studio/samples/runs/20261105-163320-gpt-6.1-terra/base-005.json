@@ -1,0 +1,262 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-005",
+ "item_id": "SYN0005",
+ "page_url": "https://127.0.0.1:18444/item/K10004",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "두께",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "투수 여부",
+   "procurement": "ev-7",
+   "seller": "ev-8",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-9",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 0.96,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "9900",
+    "ev": "ev-10"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-11"
+   },
+   "sale_unit": {
+    "value": "㎡",
+    "ev": "ev-12"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-12"
+   }
+  },
+  "llm": {
+   "formula": "ceil(9900 ÷ 1 × 1.1)",
+   "benchmark_krw": "10890"
+  },
+  "code": {
+   "benchmark_krw": "10890",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "10890",
+   "ratio": "1.0",
+   "gap_pass": false,
+   "gap_pass_alt": null,
+   "amount_krw": "0"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "10890",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "200×100"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 6,
+   "text": "200×100",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "60mm"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 10,
+   "text": "60T",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "인조화강블록"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 8,
+   "text": "인조화강블록",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "불투수"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 8,
+   "text": "불투수",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "HB-H20606"
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 4,
+   "text": "₩9,900",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "page",
+   "line": 4,
+   "text": "VAT 별도",
+   "hidden": false
+  },
+  "ev-12": {
+   "source": "page",
+   "line": 11,
+   "text": "㎡",
+   "hidden": false
+  },
+  "ev-13": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "㎡"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(가격 차이 기준 미달, 시중가 대비 1.0배)",
+ "title_review": {
+  "agree": true,
+  "supplement": "모델은 판매 페이지에 없으나 핵심 규격이 일치해 동급으로 판단했다. 지역별 운반비는 비교 단가에 포함하지 않았다."
+ },
+ "reason": "모델 {ev-9}는 판매 페이지에 없지만 규격 {ev-1}과 {ev-2}, 두께 {ev-3}와 {ev-4}, 종류 {ev-5}와 {ev-6}, 투수 여부 {ev-7}과 {ev-8}이 일치하며 본품이다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "44e15869b73e0d83476af215a2122af977a7c3658b4b113d063cccee92d388ee",
+  "category": "보차도용콘크리트블록",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 18,
+  "tokens_in": 2393,
+  "tokens_out": 937,
+  "cache_read_tokens": 12332,
+  "cost_usd": "0.008290",
+  "elapsed_ms": 16300,
+  "started_at": "2026-11-05T07:33:36+00:00",
+  "error": null
+ }
+}

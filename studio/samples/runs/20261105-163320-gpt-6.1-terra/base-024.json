@@ -1,0 +1,216 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-024",
+ "item_id": "SYN0024",
+ "page_url": "https://127.0.0.1:18444/item/K10023",
+ "read_mode": "static",
+ "label": "same_model",
+ "rows": [
+  {
+   "attribute": "모델",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "화면 크기",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "420000",
+    "ev": "ev-7"
+   },
+   "vat": {
+    "value": "included",
+    "ev": "ev-8"
+   },
+   "sale_unit": {
+    "value": "대",
+    "ev": "ev-9"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-9"
+   }
+  },
+  "llm": {
+   "formula": "ceil(420000 ÷ 1)",
+   "benchmark_krw": "420000"
+  },
+  "code": {
+   "benchmark_krw": "420000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "672000",
+   "ratio": "1.6",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "9576000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "420000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "VM27F-C4"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 5,
+   "text": "VM27F-C4",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "액정모니터"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "모니터",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "68.6cm"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 7,
+   "text": "68.6cm",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 8,
+   "text": "420,000원",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 9,
+   "text": "부가세 포함",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 10,
+   "text": "대",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "대"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "같은 모델의 시중가 대비 1.6배",
+ "title_review": {
+  "agree": true,
+  "supplement": null
+ },
+ "reason": "모델 코드 {ev-1}과 {ev-2}, 화면 크기 {ev-5}와 {ev-6}이 같고 모두 모니터 본품으로 표시되어 있다({ev-3}, {ev-4}). 상태에 관한 별도 표시는 없다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "a7d764d850ecaca3e3b52c41751853b87584227c78a5bdd9032c5cb318513ca5",
+  "category": "액정모니터",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 15,
+  "tokens_in": 1912,
+  "tokens_out": 679,
+  "cache_read_tokens": 11861,
+  "cost_usd": "0.006375",
+  "elapsed_ms": 13461,
+  "started_at": "2026-11-05T07:34:53+00:00",
+  "error": null
+ }
+}

@@ -1,0 +1,13 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "name", "text": "800×700×2000mm"}
+{"id": "ev-2", "source": "page", "line": 5, "text": "800×700×2000mm", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "3종"}
+{"id": "ev-4", "source": "page", "line": 7, "text": "3종", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "model", "text": "NF-387"}
+{"id": "ev-6", "source": "procurement", "line": null, "field": "name", "text": "철근콘크리트벤치플룸관"}
+{"id": "ev-7", "source": "page", "line": 3, "text": "벤치플룸관", "hidden": false}
+{"id": "ev-8", "source": "procurement", "line": null, "field": "category", "text": "벤치플룸관"}
+{"id": "ev-9", "source": "page", "line": 10, "text": "106,000원", "hidden": false}
+{"id": "ev-10", "source": "page", "line": 10, "text": "VAT 미포함", "hidden": false}
+{"id": "ev-11", "source": "page", "line": 11, "text": "본당", "hidden": false}
+{"id": "ev-12", "source": "procurement", "line": null, "field": "unit", "text": "본"}
+{"id": "ev-13", "source": "page", "line": 12, "text": "운반비 별도", "hidden": false}

@@ -1,0 +1,204 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "hard-08",
+ "item_id": "SYN9008",
+ "page_url": "https://127.0.0.1:18444/item/K90008",
+ "read_mode": "static",
+ "label": "different",
+ "rows": [
+  {
+   "attribute": "모델",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 0.97,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "different",
+   "confidence": 1.0,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "화면 크기",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 0.95,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "59000",
+    "ev": "ev-7"
+   },
+   "vat": {
+    "value": "included",
+    "ev": "ev-8"
+   },
+   "sale_unit": {
+    "value": "대",
+    "ev": "ev-9"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-9"
+   }
+  },
+  "llm": null,
+  "code": null,
+  "check": {
+   "status": "not_applicable",
+   "recomputed": null,
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "VM27Q-A1"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 6,
+   "text": "VM27Q-A1",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "액정모니터"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "거치대",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "68.6cm"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 6,
+   "text": "68.6cm",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 4,
+   "text": "59,000원",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 5,
+   "text": "부가세 포함",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 7,
+   "text": "대당",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "대"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 0,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(다른 물건)",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 상품은 모니터 본품이 아니라 전용 거치대이므로 비교 단가를 산출하지 않았다."
+ },
+ "reason": "조달 물품은 {ev-3} 본품이지만 판매 상품은 해당 모델 전용 {ev-4}이다. 페이지의 모델 코드 {ev-2}와 대각 길이 {ev-6}가 조달 정보 {ev-1}, {ev-5}와 일치해도 구성품이 달라 다른 물건이다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "93ad92a64633f308022dce286cef96caa7d1e95ca32ee1526dcc2356a505c965",
+  "category": "액정모니터",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 14,
+  "tokens_in": 2117,
+  "tokens_out": 975,
+  "cache_read_tokens": 11939,
+  "cost_usd": "0.008115",
+  "elapsed_ms": 16256,
+  "started_at": "2026-11-05T07:36:22+00:00",
+  "error": null
+ }
+}

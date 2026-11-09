@@ -1,0 +1,10 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "name", "text": "300×300"}
+{"id": "ev-2", "source": "page", "line": 6, "text": "300×300", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "60mm"}
+{"id": "ev-4", "source": "page", "line": 10, "text": "60T", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "name", "text": "인조화강블록"}
+{"id": "ev-6", "source": "page", "line": 8, "text": "인조화강블록", "hidden": false}
+{"id": "ev-7", "source": "procurement", "line": null, "field": "name", "text": "투수"}
+{"id": "ev-8", "source": "page", "line": 8, "text": "투수", "hidden": false}
+{"id": "ev-9", "source": "procurement", "line": null, "field": "model", "text": "HB-X3060"}
+{"id": "ev-10", "source": "page", "line": 4, "text": "가격 문의", "hidden": false}

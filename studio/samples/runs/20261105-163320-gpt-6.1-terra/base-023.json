@@ -1,0 +1,236 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-023",
+ "item_id": "SYN0023",
+ "page_url": "https://127.0.0.1:18444/item/K10022",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "재질",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.98,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.95,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "30000",
+    "ev": "ev-8"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-9"
+   },
+   "sale_unit": {
+    "value": "개",
+    "ev": "ev-10"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-10"
+   }
+  },
+  "llm": {
+   "formula": "ceil(30000 ÷ 1 × 1.1)",
+   "benchmark_krw": "33000"
+  },
+  "code": {
+   "benchmark_krw": "33000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "52800",
+   "ratio": "1.6",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "22176000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "33000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "600×600×50mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 4,
+   "text": "600×600×50mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "스틸"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 4,
+   "text": "스틸",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "GT-6S12"
+  },
+  "ev-6": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "그레이팅덮개"
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 3,
+   "text": "그레이팅 덮개",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 5,
+   "text": "₩30,000",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 5,
+   "text": "VAT 별도",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 6,
+   "text": "개당",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "개"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 그레이팅 시중가 대비 1.6배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 페이지에 모델은 표시되지 않았으며 배송비는 비교 단가에서 제외했다."
+ },
+ "reason": "판매 페이지에 모델 표기는 없지만, 덮개 구성 {ev-6}과 {ev-7}, 규격 {ev-1}과 {ev-2}, 재질 {ev-3}과 {ev-4}가 일치하여 동급으로 판단한다. 판매가는 {ev-8}이며 {ev-9}다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "184b064473be8cc19a054737063d8fc7dfa277afb1f3f257e78ae35a5c7bddb3",
+  "category": "그레이팅",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 16,
+  "tokens_in": 4475,
+  "tokens_out": 815,
+  "cache_read_tokens": 9457,
+  "cost_usd": "0.009530",
+  "elapsed_ms": 15791,
+  "started_at": "2026-11-05T07:34:49+00:00",
+  "error": null
+ }
+}

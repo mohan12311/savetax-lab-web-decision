@@ -1,0 +1,13 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "name", "text": "200×200"}
+{"id": "ev-2", "source": "page", "line": 3, "text": "200×200", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "60mm"}
+{"id": "ev-4", "source": "page", "line": 4, "text": "60T", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "name", "text": "인조화강블록"}
+{"id": "ev-6", "source": "page", "line": 3, "text": "인조화강블록", "hidden": false}
+{"id": "ev-7", "source": "procurement", "line": null, "field": "name", "text": "투수"}
+{"id": "ev-8", "source": "page", "line": 3, "text": "불투수", "hidden": false}
+{"id": "ev-9", "source": "procurement", "line": null, "field": "model", "text": "HB-X2060"}
+{"id": "ev-10", "source": "page", "line": 5, "text": "9,500원", "hidden": false}
+{"id": "ev-11", "source": "page", "line": 5, "text": "VAT 미포함", "hidden": false}
+{"id": "ev-12", "source": "page", "line": 6, "text": "㎡", "hidden": false}
+{"id": "ev-13", "source": "procurement", "line": null, "field": "unit", "text": "㎡"}

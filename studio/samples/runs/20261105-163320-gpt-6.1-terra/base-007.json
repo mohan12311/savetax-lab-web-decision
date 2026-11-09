@@ -1,0 +1,222 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-007",
+ "item_id": "SYN0007",
+ "page_url": "https://127.0.0.1:18444/item/K10006",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "재질",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "34000",
+    "ev": "ev-8"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-9"
+   },
+   "sale_unit": {
+    "value": "개",
+    "ev": "ev-10"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-10"
+   }
+  },
+  "llm": {
+   "formula": "ceil(34000 ÷ 1 × 1.1)",
+   "benchmark_krw": "37400"
+  },
+  "code": {
+   "benchmark_krw": "37400",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "112200",
+   "ratio": "3.0",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "106216000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "37400",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "500×500×50mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 5,
+   "text": "500×500×50mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "주철"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 7,
+   "text": "주철",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "GT-5C95"
+  },
+  "ev-6": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "그레이팅덮개"
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 3,
+   "text": "그레이팅 덮개",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 8,
+   "text": "₩34,000",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 8,
+   "text": "VAT 별도",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 9,
+   "text": "개당",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "개"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 그레이팅 시중가 대비 3.0배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 페이지에 모델 표기는 없으며, 비교 단가에는 배송비를 더하지 않았습니다."
+ },
+ "reason": "조달 물품과 판매 상품은 {ev-6}과 {ev-7}로 종류와 구성이 같고, 규격 {ev-1}과 {ev-2}, 재질 {ev-3}과 {ev-4}가 일치한다. 조달 모델 {ev-5}는 판매 페이지에서 확인되지 않아 동급으로 판정한다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "b14573fdafc4b63222a9ead1bfc080e6c4d5f938ba867648781e62ce5fd14d24",
+  "category": "그레이팅",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 16,
+  "tokens_in": 2071,
+  "tokens_out": 788,
+  "cache_read_tokens": 12009,
+  "cost_usd": "0.007126",
+  "elapsed_ms": 14860,
+  "started_at": "2026-11-05T07:33:38+00:00",
+  "error": null
+ }
+}

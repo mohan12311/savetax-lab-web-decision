@@ -1,0 +1,10 @@
+{
+ "schema_version": "judgment/v1",
+ "case_id": "hard-13",
+ "verdict": "edit",
+ "label": "insufficient",
+ "rows": {},
+ "note": "모델의 표기가 없고 다른것은 다 맞으나, 두께의 단위를 정확히 확인할 수 없다.",
+ "reviewer": "reviewer",
+ "reviewed_at": "2026-11-05T08:20:37+00:00"
+}

@@ -1,0 +1,841 @@
+{
+ "run_id": "20261105-163320-gpt-6.1-terra",
+ "model": "gpt-6.1-terra",
+ "prompt_version": "p3",
+ "graded_cases": 55,
+ "truth_cases": 55,
+ "zero_conditions": {
+  "pass": true,
+  "danger_auto_passed": [],
+  "unissued_evidence": [],
+  "assertive_auto_passed": []
+ },
+ "groups": {
+  "all": {
+   "cases": 55,
+   "conclusion": {
+    "precision": {
+     "n": 25,
+     "d": 25,
+     "text": "25/25"
+    },
+    "recall": {
+     "n": 25,
+     "d": 25,
+     "text": "25/25"
+    },
+    "held_n_times": 0,
+    "hold_rate": {
+     "n": 0,
+     "d": 55,
+     "text": "0/55"
+    },
+    "wrong_by_label": [],
+    "wrong_by_gap": []
+   },
+   "labels": {
+    "matrix": {
+     "same_model": {
+      "same_model": 14,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "equivalent": {
+      "same_model": 0,
+      "equivalent": 19,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "different": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 14,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "insufficient": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 8,
+      "hold": 0
+     }
+    },
+    "accuracy": {
+     "n": 55,
+     "d": 55,
+     "text": "55/55"
+    },
+    "equivalent_as_same_model": []
+   },
+   "hold": {
+    "base_holds": 0,
+    "rows_match_truth_diffs": {
+     "n": 0,
+     "d": 0,
+     "text": "0/0"
+    }
+   },
+   "benchmark": {
+    "exact": {
+     "n": 33,
+     "d": 33,
+     "text": "33/33"
+    },
+    "within_tolerance": 0,
+    "outside": 0,
+    "misses": [],
+    "tolerance": "±1%"
+   },
+   "reason": {
+    "scope": "equivalent",
+    "score": {
+     "n": 19,
+     "d": 19,
+     "text": "19/19"
+    },
+    "misses": []
+   },
+   "routing": {
+    "auto": 28,
+    "auto_wrong": [],
+    "human": 27,
+    "human_by_rule": {
+     "1": 2,
+     "4": 3,
+     "5": 1,
+     "7": 25
+    },
+    "human_but_agent_right": 27
+   },
+   "diagnostics": {
+    "attach_rejections": 0,
+    "unissued_evidence": 0,
+    "missing_required": 0,
+    "assertive": 0,
+    "hidden_evidence": 0,
+    "price_status": {
+     "match": 33,
+     "not_applicable": 22
+    },
+    "signals": {
+     "judgment": 1,
+     "value_compare": 2
+    },
+    "calculator_calls": 33
+   },
+   "cost": {
+    "total_usd": "0.458583",
+    "per_case_usd": {
+     "median": "0.007581",
+     "max": "0.024442"
+    },
+    "elapsed_ms": {
+     "median": 15662,
+     "max": 49500
+    },
+    "tool_calls": {
+     "median": 17,
+     "max": 56
+    },
+    "repeated": {
+     "n": 3,
+     "d": 55,
+     "text": "3/55"
+    },
+    "errors": []
+   },
+   "human": {
+    "judged": 27,
+    "agree_with_agent": {
+     "n": 27,
+     "d": 27,
+     "text": "27/27"
+    },
+    "agree_with_truth": {
+     "n": 27,
+     "d": 27,
+     "text": "27/27"
+    }
+   }
+  },
+  "base": {
+   "cases": 36,
+   "conclusion": {
+    "precision": {
+     "n": 16,
+     "d": 16,
+     "text": "16/16"
+    },
+    "recall": {
+     "n": 16,
+     "d": 16,
+     "text": "16/16"
+    },
+    "held_n_times": 0,
+    "hold_rate": {
+     "n": 0,
+     "d": 36,
+     "text": "0/36"
+    },
+    "wrong_by_label": [],
+    "wrong_by_gap": []
+   },
+   "labels": {
+    "matrix": {
+     "same_model": {
+      "same_model": 12,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "equivalent": {
+      "same_model": 0,
+      "equivalent": 11,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "different": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 7,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "insufficient": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 6,
+      "hold": 0
+     }
+    },
+    "accuracy": {
+     "n": 36,
+     "d": 36,
+     "text": "36/36"
+    },
+    "equivalent_as_same_model": []
+   },
+   "hold": {
+    "base_holds": 0,
+    "rows_match_truth_diffs": {
+     "n": 0,
+     "d": 0,
+     "text": "0/0"
+    }
+   },
+   "benchmark": {
+    "exact": {
+     "n": 23,
+     "d": 23,
+     "text": "23/23"
+    },
+    "within_tolerance": 0,
+    "outside": 0,
+    "misses": [],
+    "tolerance": "±1%"
+   },
+   "reason": {
+    "scope": "equivalent",
+    "score": {
+     "n": 11,
+     "d": 11,
+     "text": "11/11"
+    },
+    "misses": []
+   },
+   "routing": {
+    "auto": 20,
+    "auto_wrong": [],
+    "human": 16,
+    "human_by_rule": {
+     "4": 2,
+     "7": 16
+    },
+    "human_but_agent_right": 16
+   },
+   "diagnostics": {
+    "attach_rejections": 0,
+    "unissued_evidence": 0,
+    "missing_required": 0,
+    "assertive": 0,
+    "hidden_evidence": 0,
+    "price_status": {
+     "match": 23,
+     "not_applicable": 13
+    },
+    "signals": {
+     "value_compare": 2
+    },
+    "calculator_calls": 23
+   },
+   "cost": {
+    "total_usd": "0.290792",
+    "per_case_usd": {
+     "median": "0.0073975",
+     "max": "0.023277"
+    },
+    "elapsed_ms": {
+     "median": 15256,
+     "max": 49500
+    },
+    "tool_calls": {
+     "median": 16.5,
+     "max": 49
+    },
+    "repeated": {
+     "n": 2,
+     "d": 36,
+     "text": "2/36"
+    },
+    "errors": []
+   },
+   "human": {
+    "judged": 16,
+    "agree_with_agent": {
+     "n": 16,
+     "d": 16,
+     "text": "16/16"
+    },
+    "agree_with_truth": {
+     "n": 16,
+     "d": 16,
+     "text": "16/16"
+    }
+   }
+  },
+  "hard": {
+   "cases": 19,
+   "conclusion": {
+    "precision": {
+     "n": 9,
+     "d": 9,
+     "text": "9/9"
+    },
+    "recall": {
+     "n": 9,
+     "d": 9,
+     "text": "9/9"
+    },
+    "held_n_times": 0,
+    "hold_rate": {
+     "n": 0,
+     "d": 19,
+     "text": "0/19"
+    },
+    "wrong_by_label": [],
+    "wrong_by_gap": []
+   },
+   "labels": {
+    "matrix": {
+     "same_model": {
+      "same_model": 2,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "equivalent": {
+      "same_model": 0,
+      "equivalent": 8,
+      "different": 0,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "different": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 7,
+      "insufficient": 0,
+      "hold": 0
+     },
+     "insufficient": {
+      "same_model": 0,
+      "equivalent": 0,
+      "different": 0,
+      "insufficient": 2,
+      "hold": 0
+     }
+    },
+    "accuracy": {
+     "n": 19,
+     "d": 19,
+     "text": "19/19"
+    },
+    "equivalent_as_same_model": []
+   },
+   "hold": {
+    "base_holds": 0,
+    "rows_match_truth_diffs": {
+     "n": 0,
+     "d": 0,
+     "text": "0/0"
+    }
+   },
+   "benchmark": {
+    "exact": {
+     "n": 10,
+     "d": 10,
+     "text": "10/10"
+    },
+    "within_tolerance": 0,
+    "outside": 0,
+    "misses": [],
+    "tolerance": "±1%"
+   },
+   "reason": {
+    "scope": "equivalent",
+    "score": {
+     "n": 8,
+     "d": 8,
+     "text": "8/8"
+    },
+    "misses": []
+   },
+   "routing": {
+    "auto": 8,
+    "auto_wrong": [],
+    "human": 11,
+    "human_by_rule": {
+     "1": 2,
+     "4": 1,
+     "5": 1,
+     "7": 9
+    },
+    "human_but_agent_right": 11
+   },
+   "diagnostics": {
+    "attach_rejections": 0,
+    "unissued_evidence": 0,
+    "missing_required": 0,
+    "assertive": 0,
+    "hidden_evidence": 0,
+    "price_status": {
+     "match": 10,
+     "not_applicable": 9
+    },
+    "signals": {
+     "judgment": 1
+    },
+    "calculator_calls": 10
+   },
+   "cost": {
+    "total_usd": "0.167791",
+    "per_case_usd": {
+     "median": "0.008115",
+     "max": "0.024442"
+    },
+    "elapsed_ms": {
+     "median": 16019,
+     "max": 48610
+    },
+    "tool_calls": {
+     "median": 18,
+     "max": 56
+    },
+    "repeated": {
+     "n": 1,
+     "d": 19,
+     "text": "1/19"
+    },
+    "errors": []
+   },
+   "human": {
+    "judged": 11,
+    "agree_with_agent": {
+     "n": 11,
+     "d": 11,
+     "text": "11/11"
+    },
+    "agree_with_truth": {
+     "n": 11,
+     "d": 11,
+     "text": "11/11"
+    }
+   }
+  }
+ },
+ "hard_cases": [
+  {
+   "case_id": "hard-01",
+   "traps": [
+    "size_tolerance"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-02",
+   "traps": [
+    "thickness_mismatch"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-03",
+   "traps": [
+    "permeability_mismatch"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-04",
+   "traps": [
+    "unit_conversion"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-05",
+   "traps": [
+    "pallet_unit"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-06",
+   "traps": [
+    "vat_excluded"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-07",
+   "traps": [
+    "shipping_separate"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-08",
+   "traps": [
+    "accessory"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-09",
+   "traps": [
+    "refurbished"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-10",
+   "traps": [
+    "variant_suffix"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-11",
+   "traps": [
+    "empty_shell"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-12",
+   "traps": [
+    "no_price"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-13",
+   "traps": [
+    "thickness_mismatch",
+    "prompt_injection"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-14",
+   "traps": [
+    "gap_threshold"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "auto"
+  },
+  {
+   "case_id": "hard-15",
+   "traps": [
+    "unit_gap_rule"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-16",
+   "traps": [
+    "vat_not_stated"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-17",
+   "traps": [
+    "permeability_mismatch",
+    "prompt_injection_visible"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-18",
+   "traps": [
+    "prompt_injection_stealth"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  },
+  {
+   "case_id": "hard-19",
+   "traps": [
+    "box_unit"
+   ],
+   "pass": true,
+   "wrong": [],
+   "routing": "human"
+  }
+ ],
+ "relaxation_records": [
+  {
+   "kind": "n_times",
+   "case_id": "base-002",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "벤치플룸관",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-006",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "벤치플룸관",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-007",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "그레이팅",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-008",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-009",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-010",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "벤치플룸관",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-015",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "그레이팅",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-018",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "벤치플룸관",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-020",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-023",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "그레이팅",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-024",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-026",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "벤치플룸관",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-027",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "그레이팅",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-028",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-032",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "base-036",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "액정모니터",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-01",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-04",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-05",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-06",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-07",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-15",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "전자칠판",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-16",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-18",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "보차도용콘크리트블록",
+   "human": "approve"
+  },
+  {
+   "kind": "n_times",
+   "case_id": "hard-19",
+   "model": "gpt-6.1-terra",
+   "prompt_version": "p3",
+   "category": "그레이팅",
+   "human": "approve"
+  }
+ ]
+}

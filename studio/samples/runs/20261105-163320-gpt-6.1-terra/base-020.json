@@ -1,0 +1,230 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-020",
+ "item_id": "SYN0020",
+ "page_url": "https://127.0.0.1:18444/item/K10019",
+ "read_mode": "static",
+ "label": "same_model",
+ "rows": [
+  {
+   "attribute": "모델",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "화면 크기",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "단위",
+   "procurement": "ev-10",
+   "seller": "ev-9",
+   "result": "same",
+   "confidence": 1,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "430000",
+    "ev": "ev-7"
+   },
+   "vat": {
+    "value": "included",
+    "ev": "ev-8"
+   },
+   "sale_unit": {
+    "value": "대",
+    "ev": "ev-9"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-9"
+   }
+  },
+  "llm": {
+   "formula": "ceil(430000 ÷ 1)",
+   "benchmark_krw": "430000"
+  },
+  "code": {
+   "benchmark_krw": "430000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "1075000",
+   "ratio": "2.5",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "33540000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "430000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "VM27F-C6"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 4,
+   "text": "VM27F-C6",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "액정모니터"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "모니터",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "68.6cm"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 4,
+   "text": "68.6cm",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 5,
+   "text": "430,000원",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 6,
+   "text": "부가세 포함",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 7,
+   "text": "대",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "대"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "같은 모델의 시중가 대비 2.5배",
+ "title_review": {
+  "agree": true,
+  "supplement": null
+ },
+ "reason": "모델 {ev-1}과 {ev-2}, 화면 크기 {ev-5}와 {ev-6}이 일치하며, 모두 모니터 본품이다({ev-3}, {ev-4}). 판매가 {ev-7}은 {ev-8}이며 단위 {ev-9}는 조달 단위 {ev-10}와 같다. 중고나 리퍼비시 등의 표시는 없다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "7709be22d2a1530243d33b4698421d32c3d18a36debc270ecd450184527724fa",
+  "category": "액정모니터",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 15,
+  "tokens_in": 1977,
+  "tokens_out": 775,
+  "cache_read_tokens": 11803,
+  "cost_usd": "0.006933",
+  "elapsed_ms": 13752,
+  "started_at": "2026-11-05T07:34:35+00:00",
+  "error": null
+ }
+}

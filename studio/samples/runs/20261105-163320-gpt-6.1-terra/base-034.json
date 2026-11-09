@@ -1,0 +1,228 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-034",
+ "item_id": "SYN0034",
+ "page_url": "https://127.0.0.1:18444/item/K10033",
+ "read_mode": "static",
+ "label": "same_model",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-7",
+   "seller": "ev-8",
+   "result": "same",
+   "confidence": 0.97,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "103000",
+    "ev": "ev-9"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-10"
+   },
+   "sale_unit": {
+    "value": "본",
+    "ev": "ev-11"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-11"
+   }
+  },
+  "llm": {
+   "formula": "ceil(103000 ÷ 1 × 1.1)",
+   "benchmark_krw": "113300"
+  },
+  "code": {
+   "benchmark_krw": "113300",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "101970",
+   "ratio": "0.9",
+   "gap_pass": false,
+   "gap_pass_alt": null,
+   "amount_krw": "0"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "113300",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "400×400×2000mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 3,
+   "text": "400×400×2000mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "2종"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "2종",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "NF-244"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 3,
+   "text": "NF-244",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "철근콘크리트벤치플룸관"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 3,
+   "text": "벤치플룸관",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 4,
+   "text": "103,000원",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 4,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "page",
+   "line": 6,
+   "text": "본당",
+   "hidden": false
+  },
+  "ev-12": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "본"
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "nothing_to_flag",
+ "title": "지적할 것 없음(가격 차이 기준 미달, 시중가 대비 0.9배)",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매 페이지에 별도 안내된 운반비는 비교 단가에 포함하지 않았다."
+ },
+ "reason": "모델 {ev-5}와 {ev-6}, 규격 {ev-1}과 {ev-2}, 종류 {ev-3}과 {ev-4}가 일치하며, {ev-7}과 {ev-8}은 본품이다. 판매가는 {ev-9}이며 {ev-10}, {ev-11} 기준이다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "auto",
+  "because": [
+   {
+    "rule": 10,
+    "text": "모든 줄이 접히고 결론이 지적할 것 없음이다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "11def9ae658f23da75c303d9264d937e7f4150f9632497c7e27f1488021f2948",
+  "category": "벤치플룸관",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 17,
+  "tokens_in": 2148,
+  "tokens_out": 844,
+  "cache_read_tokens": 12026,
+  "cost_usd": "0.007503",
+  "elapsed_ms": 18285,
+  "started_at": "2026-11-05T07:35:33+00:00",
+  "error": null
+ }
+}

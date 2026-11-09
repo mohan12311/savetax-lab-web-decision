@@ -1,0 +1,34 @@
+# 테스트만 돈다. 대회 토큰·LLM 키·실서버를 쓰지 않는다(CLAUDE.md 규칙 2·3). LLM 실행(make studio-run)은 CI에서 하지 않는다.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: collector/go.mod
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: 1부 Go·Python 테스트
+        run: make test
+      - name: 1부 데모(가짜 대회 서버·합성 데이터·데모 모드)
+        run: make demo-test
+      - name: 2부 테스트(스키마·생성기·확인·에이전트·채점기·검토 서버·웹 타입)
+        run: |
+          (cd studio/web && npm ci --no-audit --no-fund)
+          make studio-test
+      - name: 2부 전체 흐름(LLM 없는 규칙 기준선, 비용 0)
+        run: make studio-baseline VARIANT=v2

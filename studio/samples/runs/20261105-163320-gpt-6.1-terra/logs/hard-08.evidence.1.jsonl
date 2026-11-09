@@ -1,0 +1,10 @@
+{"id": "ev-1", "source": "procurement", "line": null, "field": "model", "text": "VM27Q-A1"}
+{"id": "ev-2", "source": "page", "line": 6, "text": "VM27Q-A1", "hidden": false}
+{"id": "ev-3", "source": "procurement", "line": null, "field": "name", "text": "액정모니터"}
+{"id": "ev-4", "source": "page", "line": 3, "text": "거치대", "hidden": false}
+{"id": "ev-5", "source": "procurement", "line": null, "field": "name", "text": "68.6cm"}
+{"id": "ev-6", "source": "page", "line": 6, "text": "68.6cm", "hidden": false}
+{"id": "ev-7", "source": "page", "line": 4, "text": "59,000원", "hidden": false}
+{"id": "ev-8", "source": "page", "line": 5, "text": "부가세 포함", "hidden": false}
+{"id": "ev-9", "source": "page", "line": 7, "text": "대당", "hidden": false}
+{"id": "ev-10", "source": "procurement", "line": null, "field": "unit", "text": "대"}

@@ -1,0 +1,242 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-028",
+ "item_id": "SYN0028",
+ "page_url": "https://127.0.0.1:18444/item/K10027",
+ "read_mode": "static",
+ "label": "same_model",
+ "rows": [
+  {
+   "attribute": "모델",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "화면 크기",
+   "procurement": "ev-5",
+   "seller": "ev-6",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.99,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  },
+  {
+   "attribute": "제조사",
+   "procurement": "ev-11",
+   "seller": "ev-12",
+   "result": "same",
+   "confidence": 1,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": null,
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "340000",
+    "ev": "ev-9"
+   },
+   "vat": {
+    "value": "included",
+    "ev": "ev-10"
+   },
+   "sale_unit": {
+    "value": "대",
+    "ev": "ev-8"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-8"
+   }
+  },
+  "llm": {
+   "formula": "ceil(340000 ÷ 1)",
+   "benchmark_krw": "340000"
+  },
+  "code": {
+   "benchmark_krw": "340000",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "680000",
+   "ratio": "2.0",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "7820000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "340000",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "VM27U-C8"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 5,
+   "text": "VM27U-C8",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "category",
+   "text": "액정모니터"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "모니터",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "68.6cm"
+  },
+  "ev-6": {
+   "source": "page",
+   "line": 7,
+   "text": "68.6cm",
+   "hidden": false
+  },
+  "ev-7": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "대"
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 9,
+   "text": "대당",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 8,
+   "text": "340,000원",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "page",
+   "line": 8,
+   "text": "부가세 포함",
+   "hidden": false
+  },
+  "ev-11": {
+   "source": "procurement",
+   "line": null,
+   "field": "manufacturer",
+   "text": "새솔전자(가상)"
+  },
+  "ev-12": {
+   "source": "page",
+   "line": 3,
+   "text": "새솔전자(가상)",
+   "hidden": false
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "같은 모델의 시중가 대비 2.0배",
+ "title_review": {
+  "agree": true,
+  "supplement": "판매가는 부가세 포함 대당 가격이며 배송비는 비교 단가에 더하지 않았습니다."
+ },
+ "reason": "모델 {ev-1}과 {ev-2}, 화면 크기 {ev-5}와 {ev-6}이 같고, 양쪽 모두 모니터 본품 {ev-3}, {ev-4}이다. 제조사도 {ev-11}, {ev-12}로 같다. 판매 페이지에 중고 등의 상태 표시는 없다.",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": null,
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "c471c1a59b7b87554c2546e1ff4acbbdde70338d5b7eb56f16131380398c9d6e",
+  "category": "액정모니터",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 1,
+  "tool_calls": 17,
+  "tokens_in": 2200,
+  "tokens_out": 842,
+  "cache_read_tokens": 16110,
+  "cost_usd": "0.007762",
+  "elapsed_ms": 18241,
+  "started_at": "2026-11-05T07:35:12+00:00",
+  "error": null
+ }
+}

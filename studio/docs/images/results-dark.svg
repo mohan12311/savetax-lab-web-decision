@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="400" viewBox="0 0 900 400" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif" role="img" aria-labelledby="title desc">
+<title id="title">합성 데이터 v1·v2에서 규칙 기준선, gpt-6.1-terra, gpt-6.1-sol의 라벨 정확도와 결론 재현율</title>
+<desc id="desc">v1(고른 표기)에서는 셋 다 90% 이상이다. v2(다양한 표기)에서 규칙 기준선은 라벨 13/55, 재현율 6/25로 떨어지고 terra는 55/55, 25/25(3회 실행 모두 같음), sol은 54/55(보류 1), 24/24다.</desc>
+<rect width="900" height="400" rx="12" fill="#1a1a19"/>
+<text x="28" y="40" font-size="19" font-weight="700" fill="#f0efec">표기를 다양하게 바꾸면 규칙은 무너지고 LLM 에이전트는 그대로</text>
+<text x="28" y="64" font-size="13" fill="#c3c2b7">합성 데이터(시드 7). 정답은 생성기가 정한다. terra v2는 같은 설정 3회 실행이 모두 같은 점수, sol은 판단 보류 1건(hard-01)</text>
+<rect x="28" y="84" width="12" height="12" rx="3" fill="#199e70"/>
+<text x="46" y="95" font-size="13" fill="#f0efec">규칙 기준선(LLM 없음)</text>
+<rect x="205.0" y="84" width="12" height="12" rx="3" fill="#3987e5"/>
+<text x="223.0" y="95" font-size="13" fill="#f0efec">gpt-6.1-terra</text>
+<rect x="372.5" y="84" width="12" height="12" rx="3" fill="#d95926"/>
+<text x="390.5" y="95" font-size="13" fill="#f0efec">gpt-6.1-sol</text>
+<text x="28.0" y="128" font-size="15" font-weight="700" fill="#f0efec">라벨 정확도</text>
+<text x="128.0" y="128" font-size="12" fill="#898781">같은 모델 / 동급 / 다른 물건 / 근거 부족</text>
+<line x1="62.0" x2="420.0" y1="340.0" y2="340.0" stroke="#383835" stroke-width="1"/>
+<text x="54.0" y="344.0" font-size="11" text-anchor="end" fill="#898781">0%</text>
+<line x1="62.0" x2="420.0" y1="245.0" y2="245.0" stroke="#2c2c2a" stroke-width="1"/>
+<text x="54.0" y="249.0" font-size="11" text-anchor="end" fill="#898781">50%</text>
+<line x1="62.0" x2="420.0" y1="150.0" y2="150.0" stroke="#2c2c2a" stroke-width="1"/>
+<text x="54.0" y="154.0" font-size="11" text-anchor="end" fill="#898781">100%</text>
+<path d="M103.5,340.0 V165.2 Q103.5,161.2 107.5,161.2 H123.5 Q127.5,161.2 127.5,165.2 V340.0 Z" fill="#199e70"><title>규칙 기준선(LLM 없음) · v1 고른 표기 51건: 48/51</title></path>
+<text x="115.5" y="155.2" font-size="11" text-anchor="middle" fill="#c3c2b7">48/51</text>
+<path d="M139.5,340.0 V157.7 Q139.5,153.7 143.5,153.7 H159.5 Q163.5,153.7 163.5,157.7 V340.0 Z" fill="#3987e5"><title>gpt-6.1-terra · v1 고른 표기 51건: 50/51</title></path>
+<text x="151.5" y="147.7" font-size="11" text-anchor="middle" fill="#c3c2b7">50/51</text>
+<path d="M175.5,340.0 V165.2 Q175.5,161.2 179.5,161.2 H195.5 Q199.5,161.2 199.5,165.2 V340.0 Z" fill="#d95926"><title>gpt-6.1-sol · v1 고른 표기 51건: 48/51</title></path>
+<text x="187.5" y="155.2" font-size="11" text-anchor="middle" fill="#c3c2b7">48/51</text>
+<text x="151.5" y="362.0" font-size="13" text-anchor="middle" fill="#f0efec">v1 고른 표기 51건</text>
+<path d="M282.5,340.0 V299.1 Q282.5,295.1 286.5,295.1 H302.5 Q306.5,295.1 306.5,299.1 V340.0 Z" fill="#199e70"><title>규칙 기준선(LLM 없음) · v2 다양한 표기 55건: 13/55</title></path>
+<text x="294.5" y="289.1" font-size="11" text-anchor="middle" fill="#c3c2b7">13/55</text>
+<path d="M318.5,340.0 V154.0 Q318.5,150.0 322.5,150.0 H338.5 Q342.5,150.0 342.5,154.0 V340.0 Z" fill="#3987e5"><title>gpt-6.1-terra · v2 다양한 표기 55건: 55/55</title></path>
+<text x="330.5" y="144.0" font-size="11" text-anchor="middle" fill="#c3c2b7">55/55</text>
+<path d="M354.5,340.0 V157.5 Q354.5,153.5 358.5,153.5 H374.5 Q378.5,153.5 378.5,157.5 V340.0 Z" fill="#d95926"><title>gpt-6.1-sol · v2 다양한 표기 55건: 54/55</title></path>
+<text x="366.5" y="147.5" font-size="11" text-anchor="middle" fill="#c3c2b7">54/55</text>
+<text x="330.5" y="362.0" font-size="13" text-anchor="middle" fill="#f0efec">v2 다양한 표기 55건</text>
+<text x="450.0" y="128" font-size="15" font-weight="700" fill="#f0efec">결론 재현율</text>
+<text x="550.0" y="128" font-size="12" fill="#898781">정답이 &quot;N배&quot;인 사건을 놓치지 않기(보류 제외)</text>
+<line x1="484.0" x2="842.0" y1="340.0" y2="340.0" stroke="#383835" stroke-width="1"/>
+<text x="476.0" y="344.0" font-size="11" text-anchor="end" fill="#898781">0%</text>
+<line x1="484.0" x2="842.0" y1="245.0" y2="245.0" stroke="#2c2c2a" stroke-width="1"/>
+<text x="476.0" y="249.0" font-size="11" text-anchor="end" fill="#898781">50%</text>
+<line x1="484.0" x2="842.0" y1="150.0" y2="150.0" stroke="#2c2c2a" stroke-width="1"/>
+<text x="476.0" y="154.0" font-size="11" text-anchor="end" fill="#898781">100%</text>
+<path d="M525.5,340.0 V162.6 Q525.5,158.6 529.5,158.6 H545.5 Q549.5,158.6 549.5,162.6 V340.0 Z" fill="#199e70"><title>규칙 기준선(LLM 없음) · v1 고른 표기 51건: 21/22</title></path>
+<text x="537.5" y="152.6" font-size="11" text-anchor="middle" fill="#c3c2b7">21/22</text>
+<path d="M561.5,340.0 V154.0 Q561.5,150.0 565.5,150.0 H581.5 Q585.5,150.0 585.5,154.0 V340.0 Z" fill="#3987e5"><title>gpt-6.1-terra · v1 고른 표기 51건: 21/21</title></path>
+<text x="573.5" y="144.0" font-size="11" text-anchor="middle" fill="#c3c2b7">21/21</text>
+<path d="M597.5,340.0 V154.0 Q597.5,150.0 601.5,150.0 H617.5 Q621.5,150.0 621.5,154.0 V340.0 Z" fill="#d95926"><title>gpt-6.1-sol · v1 고른 표기 51건: 19/19</title></path>
+<text x="609.5" y="144.0" font-size="11" text-anchor="middle" fill="#c3c2b7">19/19</text>
+<text x="573.5" y="362.0" font-size="13" text-anchor="middle" fill="#f0efec">v1 고른 표기 51건</text>
+<path d="M704.5,340.0 V298.4 Q704.5,294.4 708.5,294.4 H724.5 Q728.5,294.4 728.5,298.4 V340.0 Z" fill="#199e70"><title>규칙 기준선(LLM 없음) · v2 다양한 표기 55건: 6/25</title></path>
+<text x="716.5" y="288.4" font-size="11" text-anchor="middle" fill="#c3c2b7">6/25</text>
+<path d="M740.5,340.0 V154.0 Q740.5,150.0 744.5,150.0 H760.5 Q764.5,150.0 764.5,154.0 V340.0 Z" fill="#3987e5"><title>gpt-6.1-terra · v2 다양한 표기 55건: 25/25</title></path>
+<text x="752.5" y="144.0" font-size="11" text-anchor="middle" fill="#c3c2b7">25/25</text>
+<path d="M776.5,340.0 V154.0 Q776.5,150.0 780.5,150.0 H796.5 Q800.5,150.0 800.5,154.0 V340.0 Z" fill="#d95926"><title>gpt-6.1-sol · v2 다양한 표기 55건: 24/24</title></path>
+<text x="788.5" y="144.0" font-size="11" text-anchor="middle" fill="#c3c2b7">24/24</text>
+<text x="752.5" y="362.0" font-size="13" text-anchor="middle" fill="#f0efec">v2 다양한 표기 55건</text>
+<text x="28" y="388" font-size="11" fill="#898781">점수표 원본: studio/samples/scorecards/ · 그림 생성: studio/docs/images/results_chart.py</text>
+</svg>

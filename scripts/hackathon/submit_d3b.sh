@@ -1,7 +1,7 @@
 #!/bin/bash
 # 10/22 사용자 승인: TPE 그레이팅덮개 1건 + 옹벽 축조블록 5건(본문 data/gold/claims_new)을 한 번씩 제출한다.
 # 제출 직전 preview의 서버 예상액이 승인 때 보여 준 금액과 같을 때만 낸다. make submit을 한 번이라도 부른 물품은 다시 내지 않는다.
-cd /Users/sa/dev/savetax-lab || exit 1
+cd "$(dirname "$0")/../.." || exit 1  # 저장소 루트(공개 전에 홈 경로를 지웠다)
 LIST=""  # 공개본에서 지움: 사용자가 승인한 "물품번호:승인 때 본 서버 예상액" 6쌍
 for pair in $LIST; do
   id=${pair%%:*}; amt=${pair#*:}

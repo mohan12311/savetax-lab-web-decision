@@ -1,6 +1,6 @@
 #!/bin/bash
 # 판정기 복구 감시(10분 간격, 최대 24시간). 복구되면 사용자가 승인한(10/20·10/23) 제출 전부(10/19 블록 28건 + 10/22~23 claims_new 72건)를 현재 본문으로 한 번씩 다시 올려 재검사를 받는다.
-cd /Users/sa/dev/savetax-lab || exit 1
+cd "$(dirname "$0")/../.." || exit 1  # 저장소 루트(공개 전에 홈 경로를 지웠다)
 SINCE=$(date -u +%Y-%m-%dT%H:%M)
 for i in $(seq 1 144); do
   make found ARGS="--max-pages 1" >/dev/null 2>&1

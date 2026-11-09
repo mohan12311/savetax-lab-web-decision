@@ -1,0 +1,285 @@
+{
+ "schema_version": "answer-sheet/v1",
+ "case_id": "base-006",
+ "item_id": "SYN0006",
+ "page_url": "https://127.0.0.1:18444/item/K10005",
+ "read_mode": "static",
+ "label": "equivalent",
+ "rows": [
+  {
+   "attribute": "규격",
+   "procurement": "ev-1",
+   "seller": "ev-2",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "종류",
+   "procurement": "ev-3",
+   "seller": "ev-4",
+   "result": "same",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "모델",
+   "procurement": "ev-5",
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 1,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "구성",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.96,
+   "required": true,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 3
+   },
+   "folded": true
+  },
+  {
+   "attribute": "품목",
+   "procurement": "ev-6",
+   "seller": "ev-7",
+   "result": "same",
+   "confidence": 0.96,
+   "required": false,
+   "check": {
+    "pass": false,
+    "signals": [
+     "value_compare: 값이 다른데 같음이라고 했다(철근콘크리트벤치플룸관 ↔ 벤치플룸관)"
+    ]
+   },
+   "runs": {
+    "total": 3,
+    "agree": 2
+   },
+   "folded": false
+  },
+  {
+   "attribute": "상태",
+   "procurement": null,
+   "seller": null,
+   "result": "not_on_page",
+   "confidence": 0.99,
+   "required": false,
+   "check": {
+    "pass": true,
+    "signals": []
+   },
+   "runs": {
+    "total": 3,
+    "agree": 2
+   },
+   "folded": true
+  }
+ ],
+ "price": {
+  "read": {
+   "sale_price": {
+    "value": "142000",
+    "ev": "ev-8"
+   },
+   "vat": {
+    "value": "excluded",
+    "ev": "ev-9"
+   },
+   "sale_unit": {
+    "value": "본",
+    "ev": "ev-11"
+   },
+   "conversion": {
+    "value": "1",
+    "ev": "ev-11"
+   }
+  },
+  "llm": {
+   "formula": "ceil(142000 ÷ 1 × 1.1)",
+   "benchmark_krw": "156200"
+  },
+  "code": {
+   "benchmark_krw": "156200",
+   "benchmark_alt_krw": null,
+   "vat_assumption": "stated",
+   "p_krw": "390500",
+   "ratio": "2.5",
+   "gap_pass": true,
+   "gap_pass_alt": null,
+   "amount_krw": "58575000"
+  },
+  "check": {
+   "status": "match",
+   "recomputed": "156200",
+   "pass": true,
+   "signals": [],
+   "folded": true
+  }
+ },
+ "evidence": {
+  "ev-1": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "800×700×2000mm"
+  },
+  "ev-2": {
+   "source": "page",
+   "line": 3,
+   "text": "800×700×2000mm",
+   "hidden": false
+  },
+  "ev-3": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "3종"
+  },
+  "ev-4": {
+   "source": "page",
+   "line": 3,
+   "text": "3종",
+   "hidden": false
+  },
+  "ev-5": {
+   "source": "procurement",
+   "line": null,
+   "field": "model",
+   "text": "NF-387"
+  },
+  "ev-6": {
+   "source": "procurement",
+   "line": null,
+   "field": "name",
+   "text": "철근콘크리트벤치플룸관"
+  },
+  "ev-7": {
+   "source": "page",
+   "line": 3,
+   "text": "벤치플룸관",
+   "hidden": false
+  },
+  "ev-8": {
+   "source": "page",
+   "line": 4,
+   "text": "142,000원",
+   "hidden": false
+  },
+  "ev-9": {
+   "source": "page",
+   "line": 4,
+   "text": "부가세 별도",
+   "hidden": false
+  },
+  "ev-10": {
+   "source": "procurement",
+   "line": null,
+   "field": "unit",
+   "text": "본"
+  },
+  "ev-11": {
+   "source": "page",
+   "line": 6,
+   "text": "본",
+   "hidden": false
+  },
+  "ev-12": {
+   "source": "page",
+   "line": 7,
+   "text": "운반비 별도",
+   "hidden": false
+  }
+ },
+ "warnings": [],
+ "checks": {
+  "unissued_evidence": [],
+  "missing_required": [],
+  "assertive": [],
+  "hidden_evidence": [],
+  "vat_flip": false,
+  "vat_policy_checked": false,
+  "attach_rejections": 0,
+  "calculator_calls": 1,
+  "has_required_list": true
+ },
+ "conclusion": "n_times",
+ "title": "동급 벤치플룸관 시중가 대비 2.5배",
+ "title_review": {
+  "agree": true,
+  "supplement": "모델은 판매 페이지에 표기되지 않았으며, 별도 운반비는 비교 단가에 포함하지 않았습니다."
+ },
+ "reason": "판매 페이지에 모델 표기는 없으나 조달 물품과 판매 물품의 품목({ev-6}, {ev-7}), 규격({ev-1}, {ev-2}), 종류({ev-3}, {ev-4})가 일치하며 본품으로 보인다. 판매 단위와 조달 단위가 같다({ev-10}, {ev-11}). 운반비는 별도다({ev-12}).",
+ "hold_reason": null,
+ "hold_rows": [],
+ "routing": {
+  "to": "human",
+  "because": [
+   {
+    "rule": 4,
+    "text": "펼쳐진 줄이 있다: 품목"
+   },
+   {
+    "rule": 7,
+    "text": "결론이 시중가 대비 N배다"
+   }
+  ]
+ },
+ "repeats": {
+  "total": 3,
+  "labels": {
+   "equivalent": 3
+  }
+ },
+ "run": {
+  "split_rule": "lines-v1",
+  "source_sha256": "0731fd1cf3e2d4cc3cf716990346dd75d84ea3e45b6273bbd3c94d265543cdd9",
+  "category": "벤치플룸관",
+  "model": "gpt-6.1-terra",
+  "prompt_version": "p3",
+  "runs": 3,
+  "tool_calls": 49,
+  "tokens_in": 7301,
+  "tokens_out": 2575,
+  "cache_read_tokens": 25666,
+  "cost_usd": "0.023277",
+  "elapsed_ms": 41792,
+  "started_at": "2026-11-05T07:33:37+00:00",
+  "error": null
+ }
+}

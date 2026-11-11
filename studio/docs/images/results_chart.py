@@ -17,7 +17,7 @@ PANELS = [
         "v1 고른 표기 51건": [(48, 51), (50, 51), (48, 51)],
         "v2 다양한 표기 55건": [(13, 55), (55, 55), (54, 55)],
     }),
-    ("결론 재현율", "정답이 \"N배\"인 사건을 놓치지 않기(보류 제외)", {
+    ("결론 재현율(보류 제외)", "정답이 \"N배\"인 사례를 놓치지 않기", {
         "v1 고른 표기 51건": [(21, 22), (21, 21), (19, 19)],
         "v2 다양한 표기 55건": [(6, 25), (25, 25), (24, 24)],
     }),
@@ -51,12 +51,12 @@ def render(theme: str) -> str:
     t = THEMES[theme]
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
            f'font-family="{esc(FONT)}" role="img" aria-labelledby="title desc">',
-           '<title id="title">합성 데이터 v1·v2에서 규칙 기준선, gpt-6.1-terra, gpt-6.1-sol의 라벨 정확도와 결론 재현율</title>',
-           '<desc id="desc">v1(고른 표기)에서는 셋 다 90% 이상이다. v2(다양한 표기)에서 규칙 기준선은 라벨 13/55, 재현율 6/25로 '
+           '<title id="title">합성 데이터 v1·v2에서 규칙 기준선, gpt-6.1-terra, gpt-6.1-sol의 라벨 정확도와 결론 재현율(판단 보류는 분모에서 뺌)</title>',
+           '<desc id="desc">v1(고른 표기)에서는 셋 다 라벨 정확도 90% 이상이다. v2(다양한 표기)에서 규칙 기준선은 라벨 13/55, 재현율 6/25로 '
            '떨어지고 terra는 55/55, 25/25(3회 실행 모두 같음), sol은 54/55(보류 1), 24/24다.</desc>',
            f'<rect width="{W}" height="{H}" rx="12" fill="{t["surface"]}"/>',
-           f'<text x="28" y="40" font-size="19" font-weight="700" fill="{t["ink"]}">표기를 다양하게 바꾸면 규칙은 무너지고 LLM 에이전트는 그대로</text>',
-           f'<text x="28" y="64" font-size="13" fill="{t["ink2"]}">합성 데이터(시드 7). 정답은 생성기가 정한다. terra v2는 같은 설정 3회 실행이 모두 같은 점수, sol은 판단 보류 1건(hard-01)</text>']
+           f'<text x="28" y="40" font-size="19" font-weight="700" fill="{t["ink"]}">표기가 다양한 v2에서 라벨 정확도: 규칙 기준선 13/55, LLM 에이전트 54/55 이상</text>',
+           f'<text x="28" y="64" font-size="13" fill="{t["ink2"]}">합성 데이터(시드 7). 정답은 생성기가 정한다. terra v2는 같은 설정 3회 실행이 모두 같은 점수, sol v2는 판단 보류 1건(hard-01)</text>']
     # 범례(시리즈가 셋이라 늘 둔다)
     lx = 28
     for i, name in enumerate(SERIES):

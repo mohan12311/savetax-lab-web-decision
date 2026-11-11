@@ -101,7 +101,7 @@ export default function CaseView({ run, caseId, onSaved, onPrev, onNext, hasNext
   const pageRef = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
-    window.scrollTo(0, 0); // 새 사건은 맨 위부터
+    window.scrollTo(0, 0); // 새 사례는 맨 위부터
     api.caseDetail(run, caseId).then((x) => {
       setD(x);
       const j = x.judgment;
@@ -275,7 +275,7 @@ export default function CaseView({ run, caseId, onSaved, onPrev, onNext, hasNext
             </div>
             {pageView === "original" ? (
               <>
-                <p className="small muted">보관해 둔 HTML을 그대로 그린 화면입니다. 스크립트·폼·외부 요청은 막았습니다. 화면에서 숨긴 글(AI 지시문 등)은 여기 보이지 않을 수 있으니 줄 보기에서 확인하세요.</p>
+                <p className="small muted">보관해 둔 HTML을 그대로 그린 화면입니다. 스크립트·폼·외부 요청은 막았습니다. 화면에서 숨긴 글(프롬프트 인젝션 등)은 여기 보이지 않을 수 있으니 줄 보기에서 확인하세요.</p>
                 <iframe className="original" src={pageSrc} sandbox="" title="판매 페이지 보관본 원본" referrerPolicy="no-referrer" />
               </>
             ) : (
@@ -291,7 +291,7 @@ export default function CaseView({ run, caseId, onSaved, onPrev, onNext, hasNext
                         <span className="lt">{l.text}</span>
                         {tags && <span className="tag">{tags.join("·")}</span>}
                         {l.hidden && <span className="tag muted">화면에 안 보임</span>}
-                        {removed.has(l.line) && <span className="tag danger">AI 지시문 · 에이전트에게 안 보여 줌</span>}
+                        {removed.has(l.line) && <span className="tag danger">프롬프트 인젝션 · 에이전트에게 안 보여 줌</span>}
                       </li>
                     );
                   })}

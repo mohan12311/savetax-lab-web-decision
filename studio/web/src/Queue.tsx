@@ -21,7 +21,7 @@ export function matchFilter(c: CaseSummary, f: Filter): boolean {
   }
 }
 
-/** 먼저 볼 사건이 앞에 오게: AI 지시문 > 보류 > 확인이 필요한 줄·부가세·읽지 않은 가격 > N배만 > 자동 통과 */
+/** 먼저 볼 사례가 앞에 오게: 프롬프트 인젝션 > 보류 > 확인이 필요한 줄·부가세·읽지 않은 가격 > N배만 > 자동 통과 */
 export function priority(c: CaseSummary): number {
   if (c.rules.includes(1)) return 0;
   if (c.rules.includes(3)) return 1;
@@ -31,7 +31,7 @@ export function priority(c: CaseSummary): number {
 }
 
 const CHIP: Record<number, [string, string]> = {
-  1: ["AI 지시문", "danger"],
+  1: ["프롬프트 인젝션", "danger"],
   3: ["보류", "warn"],
   4: ["확인할 줄", "warn"],
   5: ["부가세 표기 없음", "warn"],

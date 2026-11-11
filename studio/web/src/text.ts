@@ -36,7 +36,7 @@ export function signal(x: string): { kind: string; text: string } {
   return { kind: SIGNAL_KO[code] ?? code, text: x.slice(i + 2) };
 }
 
-/** 사람에게 온 이유(답안지 명세 7절)를 "무엇을 확인하나"로 바꾼다 */
+/** 사람에게 온 이유(판정 결과 명세 7절)를 "무엇을 확인하나"로 바꾼다 */
 export function checklist(s: AnswerSheet): { tone: "danger" | "warn" | "info"; text: string }[] {
   const out: { tone: "danger" | "warn" | "info"; text: string }[] = [];
   const code = s.price.code;
@@ -79,7 +79,7 @@ export function checklist(s: AnswerSheet): { tone: "danger" | "warn" | "info"; t
         out.push({ tone: "warn", text: "페이지에 가격처럼 보이는 글이 있는데 에이전트가 가격을 읽지 않았습니다. 놓친 근거가 없는지 보세요." });
         break;
       case 10:
-        out.push({ tone: "info", text: "자동 통과한 사건입니다(표본 확인용). 모든 줄이 코드 확인을 통과했고 결론이 \"지적할 것 없음\"입니다." });
+        out.push({ tone: "info", text: "자동 통과한 사례입니다(표본 확인용). 모든 줄이 코드 확인을 통과했고 결론이 \"지적할 것 없음\"입니다." });
         break;
     }
   }

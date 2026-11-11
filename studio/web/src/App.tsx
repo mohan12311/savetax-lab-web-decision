@@ -106,7 +106,7 @@ export default function App() {
               hasNextPending={!!nextPending}
             />
           ) : (
-            <div className="empty">{filter === "pending" ? "검토 대기가 없습니다. 모두 판정했습니다." : "사건을 고르세요."}</div>
+            <div className="empty">{filter === "pending" ? "검토 대기가 없습니다. 모두 판정했습니다." : "사례를 고르세요."}</div>
           )}
         </div>
       )}

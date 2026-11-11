@@ -1,4 +1,4 @@
-// 검토 백엔드(studio_review) API. 답안지·판정 타입은 JSON Schema에서 만든 것(src/types)을 쓴다.
+// 검토 백엔드(studio_review) API. 판정 결과·사람 판정 타입은 JSON Schema에서 만든 것(src/types)을 쓴다.
 import type { V1 as AnswerSheet, Label } from "./types/answer-sheet";
 import type { V1 as Judgment } from "./types/judgment";
 

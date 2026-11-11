@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, LABEL_KO, RULE_KO, type Scorecard, type ScoreGroup } from "./api";
 
 const ROWS: [string, (g: ScoreGroup) => string | number][] = [
-  ["사건 수", (g) => g.cases],
+  ["사례 수", (g) => g.cases],
   ["결론 정밀도(헛짚지 않기)", (g) => g.conclusion.precision.text],
   ["결론 재현율(놓치지 않기, 보류 제외)", (g) => g.conclusion.recall.text],
   ["보류한 N배", (g) => g.conclusion.held_n_times],
@@ -40,7 +40,7 @@ export default function ScorecardView({ run }: { run: string }) {
       <h1>점수표 <span className="muted">{c.run_id} · {c.model}</span></h1>
       <p className="muted small">정답 파일(cases.jsonl)과 대조한 결과다. 사람 판정 전에 보면 판단이 끌릴 수 있으니 판정을 마친 뒤 본다.</p>
       <div className={`banner ${z.pass ? "ok" : "danger"}`}>
-        반드시 0건 조건: <b>{z.pass ? "통과" : "탈락"}</b> — danger 자동 통과 {z.danger_auto_passed.length} · 발급되지 않은 근거 {z.unissued_evidence.length} · 단정 표현 자동 통과 {z.assertive_auto_passed.length}
+        필수 조건: <b>{z.pass ? "통과" : "탈락"}</b> — danger 자동 통과 {z.danger_auto_passed.length} · 발급되지 않은 근거 {z.unissued_evidence.length} · 단정 표현 자동 통과 {z.assertive_auto_passed.length}
       </div>
       <table className="grid">
         <thead><tr><th>항목</th>{groups.map((g) => <th key={g}>{g}</th>)}</tr></thead>
@@ -57,11 +57,11 @@ export default function ScorecardView({ run }: { run: string }) {
       </table>
       <h2>사람에게 간 이유</h2>
       <p>{Object.entries(all.routing.human_by_rule).map(([k, v]) => `${k}. ${RULE_KO[Number(k)]} ${v}건`).join(" · ") || "없음"}</p>
-      <h2>결론이 틀린 사건</h2>
+      <h2>결론이 틀린 사례</h2>
       <p>라벨이 틀림: {all.conclusion.wrong_by_label.join(", ") || "없음"} · 가격 차이 판정이 틀림: {all.conclusion.wrong_by_gap.join(", ") || "없음"}</p>
       {all.benchmark.misses.length > 0 && (
         <table className="grid">
-          <thead><tr><th>사건</th><th>칸</th><th>에이전트</th><th>정답</th><th>방향</th><th>원인</th></tr></thead>
+          <thead><tr><th>사례</th><th>칸</th><th>에이전트</th><th>정답</th><th>방향</th><th>원인</th></tr></thead>
           <tbody>{all.benchmark.misses.map((m) => <tr key={m.case_id}><td>{m.case_id}</td><td>{m.kind}</td><td>{m.got}</td><td>{m.want}</td><td>{m.direction}</td><td>{m.cause.join(", ")}</td></tr>)}</tbody>
         </table>
       )}
